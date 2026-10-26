@@ -1,0 +1,7 @@
+# Cache do Python (criado ao rodar os testes)
+__pycache__/
+*.pyc
+# Backups e extratos de verdade nunca sobem: são a sua vida financeira em texto puro
+financas-backup-*.json
+financas-dados*.json
+financas-lancamentos-*.csv

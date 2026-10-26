@@ -1,0 +1,2170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vintém</title>
+<meta name="description" content="App de finanças pessoais para o celular: abre no teclado, lança um gasto em dois toques e mostra quanto dá para gastar hoje. Os dados ficam só no seu navegador.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FAF6F0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23965A38'/%3E%3Cpath d='M10.5 10.5 16 22l5.5-11.5' fill='none' stroke='%23FFFFFF' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* =============================================================================
+   Vintém: identidade neutra e quente. Papel creme, greige e taupe nos tons de apoio, texto
+   café quase preto e UM acento terroso (argila), usado só no botão principal, na aba ativa,
+   no chip ativo, na marca e no foco. Nada de rosa: o lado delicado vem da forma (a serifada
+   no número grande e no logotipo, cantos suaves, ícones finos, espaço), não da cor.
+   Por que um acento só: quando a cor de destaque aparece em todo lugar, ela deixa de apontar.
+   Regra das cores neutras: vermelho >= verde >= azul em todas, para nenhuma puxar para o rosa
+   (o teste mede: nada com matiz de rosa ou magenta).
+   Tipografia: Inter na interface (400, 500, 600) e a Fraunces só no número grande e no logotipo.
+   Escala fixa: 12, 14, 16, 20, 28 e 44 px. Espaço em múltiplos de 8 px; margem lateral de 20 px.
+   Raios: 12 px em botões, campos e teclas; 16 px em folhas; 999 só em chips.
+   Sombra só no que flutua (folha e aviso). Contraste AA medido no teste, claro e escuro.
+   ============================================================================= */
+:root {
+  --pagina: #EFE9E1;        /* fundo atrás da coluna, no computador (liso) */
+  --fundo: #FAF6F0;         /* papel creme */
+  --sup: #FFFFFF;           /* a superfície da tela (o visor) e as folhas */
+  --tecla: #F0EAE1;         /* teclas e campos: greige, um tom acima do papel */
+  --tecla-ativa: #E4DCD0;
+  --borda: #E8E0D5;         /* divisórias de 1 px */
+  --tx: #2B231E;            /* café quase preto */
+  --tx2: #6B5F55;           /* taupe escuro */
+  --tx3: #6F6359;
+  --acc: #965A38;           /* argila: o único acento */
+  --acc-claro: #D9B49A;     /* a mesma argila clara: a parcela simulada no gráfico */
+  --sobre-acc: #FFFFFF;
+  --barra: #9C8F83;         /* barras: taupe */
+  --entrada-tx: #4E7457;    /* verde-sálvia: só valor que entra */
+  --alerta: #C46A45;        /* vermelho terroso: só o que passou do limite */
+  --alerta-tx: #A84E28;
+  --toast-fundo: #2B231E; --toast-tx: #FAF6F0; --toast-acc: #FFFFFF;
+  --sombra: 0 8px 24px rgba(43, 35, 30, .10);
+  --nav-h: 64px;
+  --coluna: 420px;
+  --serif: "Fraunces", Georgia, serif;
+  --fonte: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  /* espresso quente; a argila clareia para continuar legível, nos mesmos lugares */
+  --pagina: #15110E;
+  --fundo: #1C1713;
+  --sup: #251F1A;
+  --tecla: #2E2721;
+  --tecla-ativa: #3A322B;
+  --borda: #352D27;
+  --tx: #F4EEE6;
+  --tx2: #BCB0A3;
+  --tx3: #ADA195;
+  --acc: #D49A72;
+  --acc-claro: #7A5A43;
+  --sobre-acc: #1C1713;
+  --barra: #8E8276;
+  --entrada-tx: #9BC4A4;
+  --alerta: #D9805C;
+  --alerta-tx: #EE9670;
+  --toast-fundo: #F4EEE6; --toast-tx: #1C1713; --toast-acc: #1C1713;
+  --sombra: 0 8px 24px rgba(0, 0, 0, .35);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }   /* "hidden" sempre vence um display:flex de classe */
+html { -webkit-text-size-adjust: 100%; scroll-padding-bottom: calc(var(--nav-h) + 24px); }   /* o foco nunca fica atrás da barra de baixo */
+body {
+  margin: 0; background: var(--fundo); color: var(--tx);
+  font: 400 16px/1.5 var(--fonte); -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;   /* algarismos da mesma largura: valores alinhados e o número que conta não "pula" */
+}
+h1, h2, h3, p { margin: 0; font-weight: 600; }
+p { font-weight: 400; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+svg.ic { flex: none; display: block; }
+.num { font-variant-numeric: tabular-nums; }
+.pos { color: var(--entrada-tx); }
+.ruim { color: var(--alerta-tx); }
+.sub { color: var(--tx2); font-size: 14px; }
+.vazio { color: var(--tx2); font-size: 14px; padding: 24px 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.vazio svg { color: var(--tx3); }
+
+/* ---------- a coluna de celular ---------- */
+.app { max-width: var(--coluna); margin: 0 auto; min-height: 100vh; min-height: 100dvh; background: var(--fundo); position: relative;
+  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
+.tela { padding: 16px 20px 24px; }
+.faixa-demo { display: flex; align-items: center; gap: 8px; justify-content: space-between; padding: 0 12px 0 20px;
+  border-bottom: 1px solid var(--borda); font-size: 12px; color: var(--tx2); }
+.faixa-demo button { min-height: 44px; border: 0; background: none; color: var(--tx); font-size: 12px; font-weight: 500;
+  text-decoration: underline; text-underline-offset: 3px; padding: 0 8px; }
+
+/* ---------- botões e campos ---------- */
+.botao { min-height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--borda); background: var(--sup);
+  font-size: 16px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.botao:active { background: var(--tecla); }
+.botao.primario { background: var(--acc); border-color: var(--acc); color: var(--sobre-acc); font-weight: 600; }
+.botao.perigo { color: var(--alerta-tx); }
+.botao.cheio { width: 100%; }
+.botao[disabled] { opacity: .45; cursor: default; }
+.link { border: 0; background: none; color: var(--tx); font-size: 14px; font-weight: 500; min-height: 44px; padding: 0 8px;
+  text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+.redondo { width: 44px; height: 44px; border-radius: 12px; border: 0; background: none; display: grid; place-items: center; flex: none; color: var(--tx); }
+.redondo:active { background: var(--tecla); }
+.redondo[disabled] { opacity: .3; cursor: default; }
+.entrada-txt { min-height: 48px; border-radius: 12px; border: 1px solid var(--borda); background: var(--sup); padding: 0 16px;
+  font-size: 16px; color: var(--tx); width: 100%; min-width: 0; }
+.entrada-txt::placeholder { color: var(--tx3); }
+.segmento { display: flex; background: var(--tecla); border-radius: 12px; padding: 2px; }
+.segmento button { flex: 1; border: 0; background: none; min-height: 44px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--tx2); }
+.segmento button[aria-pressed="true"] { background: var(--sup); color: var(--tx); font-weight: 600; box-shadow: 0 1px 2px rgba(43, 35, 30, .08); }
+.campos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 8px; margin-top: 16px; }
+.campo { display: grid; gap: 4px; font-size: 12px; color: var(--tx2); min-width: 0; }
+.campo.largo { grid-column: 1 / -1; }
+
+/* ---------- Hoje: o número do topo ---------- */
+.hoje-topo { padding: 0 0 16px; }
+.data-hoje { font-size: 12px; color: var(--tx2); }
+.rotulo { font-size: 14px; color: var(--tx2); margin-top: 8px; }
+.grande { font-family: var(--serif); font-size: 44px; line-height: 1.1; font-weight: 500; letter-spacing: -.01em; margin-top: 4px; color: var(--tx); }
+.grande.ruim { font-family: var(--fonte); font-size: 28px; font-weight: 600; line-height: 1.25; color: var(--alerta-tx); }
+.ritmo { font-size: 12px; color: var(--tx2); margin-top: 8px; display: flex; justify-content: space-between; gap: 8px; }
+.tempo { height: 4px; border-radius: 4px; background: var(--tecla); margin-top: 12px; overflow: hidden; }
+.tempo span { display: block; height: 100%; background: var(--barra); border-radius: 4px; transition: width .4s ease; }
+.pede-renda { margin-top: 16px; }
+
+/* ---------- Hoje: o visor (a única superfície elevada da tela) ---------- */
+.valor-caixa { background: var(--sup); border: 1px solid var(--borda); border-radius: 16px; padding: 8px 8px 8px 8px; }
+.valor-linha { display: flex; align-items: center; gap: 4px; }
+.valor-linha .segmento { flex: none; }
+.valor-linha .segmento button { min-width: 72px; }
+.icone-btn { margin-left: auto; }
+.icone-btn, .icone-btn + .icone-btn { min-width: 52px; min-height: 48px; border: 0; background: none; border-radius: 12px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px; font-size: 11px; font-weight: 500; color: var(--tx2); padding: 0 4px; }
+.icone-btn + .icone-btn { margin-left: 0; }
+.icone-btn svg { color: var(--tx); }
+.icone-btn[aria-expanded="true"] { color: var(--tx); }
+.icone-btn:active { background: var(--tecla); }
+.visor { display: block; text-align: right; font-size: 28px; line-height: 40px; font-weight: 600; padding: 4px 8px 0; min-height: 44px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.visor.vazio-v { color: var(--tx3); font-weight: 400; }
+.visor.entrada { color: var(--entrada-tx); }
+.detalhes { display: grid; grid-template-columns: auto 1fr; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--borda); align-items: center; }
+.detalhes .largo { grid-column: 1 / -1; }
+.detalhes .segmento button { min-width: 64px; }
+.notinha { margin-top: 8px; padding: 8px 0 0 8px; border-top: 1px solid var(--borda); font-size: 14px; display: flex; gap: 8px; align-items: center; }
+.notinha p { flex: 1; min-width: 0; }
+.notinha small { display: block; color: var(--tx2); font-size: 12px; }
+.barrinha { display: block; height: 4px; border-radius: 4px; background: var(--tecla); margin-top: 8px; overflow: hidden; }
+.barrinha span { display: block; height: 100%; background: var(--barra); transition: width .3s; }
+
+/* ---------- Hoje: categorias (fileira que rola para o lado) ---------- */
+.cats { display: flex; gap: 4px; overflow-x: auto; padding: 16px 20px 16px; margin: 0 -20px;
+  scroll-snap-type: x proximity; scroll-padding: 0 20px; scrollbar-width: none; }
+.cats::-webkit-scrollbar { display: none; }
+.cat { flex: none; width: 72px; min-height: 72px; border: 0; background: none; border-radius: 12px; display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-start; gap: 4px; padding: 0 2px; scroll-snap-align: start; }
+.ic-cat { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--tecla); color: var(--tx); flex: none; }
+.cat .nome { font-size: 12px; line-height: 16px; color: var(--tx2); text-align: center; max-width: 100%; overflow: hidden;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cat[aria-pressed="true"] .ic-cat { background: var(--acc); color: var(--sobre-acc); }
+.cat[aria-pressed="true"] .nome { color: var(--tx); font-weight: 600; }
+.cat:active .ic-cat { background: var(--tecla-ativa); }
+
+/* ---------- Hoje: teclado chapado, 4 x 4 (como o do sistema) ---------- */
+.teclado { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 52px); gap: 8px; }
+.tecla { border: 0; border-radius: 12px; background: var(--tecla); font-size: 20px; font-weight: 500; color: var(--tx);
+  user-select: none; -webkit-user-select: none; display: grid; place-items: center; }
+.tecla:active, .tecla.apertada { background: var(--tecla-ativa); }
+.tecla.fn { font-size: 16px; color: var(--tx2); }
+.tecla.ok { background: var(--acc); color: var(--sobre-acc); font-size: 16px; font-weight: 600; }
+.tecla.ok { grid-row: span 2; }   /* ocupa as duas últimas linhas da coluna da direita */
+.tecla.ok:active, .tecla.ok.apertada { background: var(--acc); opacity: .85; }
+.tecla.ok[disabled] { background: var(--tecla); color: var(--tx3); opacity: .7; }
+
+/* ---------- listas: linhas simples com divisória fina ---------- */
+.titulo-sec { font-size: 12px; font-weight: 600; color: var(--tx2); text-transform: uppercase; letter-spacing: .06em; margin: 24px 0 0; }
+.lista { list-style: none; margin: 0; padding: 0; }
+.lista > li + li { border-top: 1px solid var(--borda); }
+.item { width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 0; min-height: 64px; border: 0; background: none; text-align: left; }
+.item:active { background: var(--tecla); }
+.item .ic-cat { width: 40px; height: 40px; }
+.item-meio { flex: 1; min-width: 0; }
+.item-meio b { display: block; font-weight: 500; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-meio small { display: block; color: var(--tx2); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-valor { font-weight: 500; white-space: nowrap; text-align: right; }
+li.entra { animation: entra .24s ease-out; }
+@keyframes entra { from { opacity: 0; transform: translateY(-6px); } }
+
+/* ---------- Mês e Histórico ---------- */
+.mes-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 -12px; }
+.mes-cab h1 { font-size: 20px; text-align: center; flex: 1; }
+.resumo { display: grid; grid-template-columns: repeat(3, auto); justify-content: space-between; margin-top: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--borda); }
+.resumo div { min-width: 0; }
+.resumo div + div { padding-left: 12px; border-left: 1px solid var(--borda); }
+.resumo small { display: block; font-size: 12px; color: var(--tx2); }
+.resumo b { display: block; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nota-saldo { font-size: 12px; color: var(--tx2); margin-top: 8px; }
+.linhas { margin-top: 8px; }
+.linha-conta { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 48px; border-bottom: 1px solid var(--borda); font-size: 14px; }
+.linha-conta span:first-child { color: var(--tx2); }
+.linha-conta.total { font-weight: 600; font-size: 16px; }
+.linha-conta.total span:first-child { color: var(--tx); }
+.barra-cat { padding: 12px 0; border-bottom: 1px solid var(--borda); }
+.barra-cat .linha, .conta-fixa { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; align-items: center; }
+.barra-cat .linha span:first-child, .conta-fixa span:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 12px; }
+.barra-cat .ic-cat, .conta-fixa .ic-cat { width: 32px; height: 32px; }
+.conta-fixa { padding: 12px 0; border-bottom: 1px solid var(--borda); }
+.barra-cat .trilho { position: relative; height: 4px; border-radius: 4px; background: var(--tecla); margin: 8px 0 0 44px; }
+.barra-cat .cheio { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--barra); transition: width .4s ease; }
+.barra-cat .marca { position: absolute; top: -4px; bottom: -4px; width: 2px; border-radius: 2px; background: var(--tx); }
+.barra-cat.passou .cheio { background: var(--alerta); }
+.barra-cat.passou .linha > span:last-child { color: var(--alerta-tx); }
+.dia-cab { display: flex; justify-content: space-between; align-items: baseline; margin: 24px 0 0; padding-bottom: 8px; border-bottom: 1px solid var(--borda);
+  font-size: 12px; color: var(--tx2); }
+.dia-cab span:first-child { font-weight: 600; color: var(--tx); font-size: 14px; }
+.chips { display: flex; gap: 8px; overflow-x: auto; margin: 16px -20px 0; padding: 0 20px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--borda); background: var(--sup);
+  font-size: 14px; font-weight: 500; color: var(--tx); display: inline-flex; align-items: center; gap: 8px; }
+.chip svg { color: var(--tx2); }
+.chip[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: var(--sobre-acc); }
+.chip[aria-pressed="true"] svg { color: var(--sobre-acc); }
+.busca { position: relative; margin-top: 16px; }
+.busca svg { position: absolute; left: 16px; top: 14px; color: var(--tx3); pointer-events: none; }
+.busca input { padding-left: 48px; }
+.filtro-ativo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; font-size: 14px; color: var(--tx2); }
+.filtro-ativo span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Calculadoras ---------- */
+.titulo-tela { font-size: 28px; margin-bottom: 16px; }
+.calc-visor { background: var(--sup); border: 1px solid var(--borda); border-radius: 16px; padding: 16px; text-align: right; margin-top: 16px; }
+.calc-conta { min-height: 20px; color: var(--tx2); font-size: 14px; }
+.calc-num { font-size: 44px; font-weight: 500; overflow-wrap: anywhere; line-height: 1.15; }
+.teclas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
+.teclas button { min-height: 56px; }
+.teclas .op { color: var(--tx); font-weight: 600; background: var(--tecla-ativa); }
+.teclas .igual { background: var(--acc); color: var(--sobre-acc); font-weight: 600; }
+.secao-tit { font-size: 20px; margin-top: 24px; }
+.frase { margin-top: 16px; font-size: 16px; font-weight: 500; line-height: 1.5; }
+
+/* ---------- Ajustes ---------- */
+.ajuste { padding: 24px 0; border-bottom: 1px solid var(--borda); }
+.ajuste:first-of-type { padding-top: 0; }
+.ajuste h2 { font-size: 16px; }
+.ajuste > .sub { margin-top: 4px; }
+.linha-edit { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.linha-edit .entrada-txt { font-size: 16px; }
+.linha-edit .nome { flex: 1; }
+.linha-edit .valor { width: 112px; flex: none; text-align: right; }
+.linha-edit .ic-btn { width: 48px; height: 48px; border-radius: 12px; border: 1px solid var(--borda); background: var(--sup); display: grid; place-items: center; flex: none; color: var(--tx); }
+.total-fixas { display: flex; justify-content: space-between; margin-top: 16px; font-weight: 600; }
+.acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.acoes .botao { flex: 1 1 140px; }
+.rodape-nota { text-align: center; color: var(--tx2); font-size: 12px; margin: 24px 0 8px; }
+
+/* ---------- barra de navegação: ícones iguais; a ativa muda só de cor ---------- */
+.nav { position: fixed; bottom: 0; left: 0; right: 0; margin: 0 auto; max-width: var(--coluna); z-index: 30;
+  display: grid; grid-template-columns: repeat(5, 1fr); background: var(--fundo); border-top: 1px solid var(--borda);
+  padding-bottom: env(safe-area-inset-bottom); }
+.nav a { min-height: var(--nav-h); min-width: 44px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  text-decoration: none; color: var(--tx2); font-size: 11px; font-weight: 500; -webkit-tap-highlight-color: transparent; }
+.nav a[aria-current="page"] { color: var(--acc); font-weight: 600; }
+
+/* ---------- aviso com Desfazer (desliza de baixo) ---------- */
+.toast { position: fixed; left: 0; right: 0; margin: 0 auto; max-width: calc(var(--coluna) - 32px); width: calc(100% - 32px);
+  bottom: calc(var(--nav-h) + 8px + env(safe-area-inset-bottom)); z-index: 40;
+  display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 16px; border-radius: 12px;
+  background: var(--toast-fundo); color: var(--toast-tx); box-shadow: var(--sombra);
+  transform: translateY(16px); opacity: 0; pointer-events: none; transition: transform .2s ease-out, opacity .2s; }
+.toast.visivel { transform: none; opacity: 1; pointer-events: auto; }
+.toast span { flex: 1; min-width: 0; font-size: 14px; }
+.toast button { border: 0; background: none; color: var(--toast-acc); font-size: 14px; font-weight: 600; min-height: 44px; padding: 0 12px; border-radius: 8px; }
+
+/* ---------- folha que sobe de baixo (o <dialog> do navegador) ---------- */
+dialog.folha { border: 0; padding: 0; margin: auto auto 0; width: 100%; max-width: var(--coluna); max-height: 90vh; max-height: 90dvh;
+  border-radius: 16px 16px 0 0; background: var(--fundo); color: var(--tx); overflow: auto; box-shadow: var(--sombra); }
+dialog.folha::backdrop { background: rgba(43, 35, 30, .4); }
+dialog.folha[open] { animation: sobe .22s ease-out; }
+@keyframes sobe { from { transform: translateY(24px); opacity: .5; } }
+.folha-dentro { padding: 8px 20px calc(24px + env(safe-area-inset-bottom)); }
+.folha-pega { width: 40px; height: 4px; border-radius: 4px; background: var(--borda); margin: 0 auto 8px; }
+.folha-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-right: -8px; }
+.folha-cab h2 { font-size: 20px; }
+.grade-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; margin-top: 16px; }
+.grade-cats .cat { width: auto; }
+.boas-vindas { padding: 16px 0 0; }
+.boas-vindas h2 { font-size: 28px; line-height: 1.2; }
+.boas-vindas p { color: var(--tx2); margin: 8px 0 24px; }
+.boas-vindas .botao { width: 100%; margin-top: 8px; }
+.previa { margin-top: 16px; font-size: 14px; }
+.previa div { display: flex; gap: 8px; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--borda); }
+.previa div span:nth-child(2) { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- marca e logotipo ---------- */
+.marca-c { fill: var(--acc); }
+.marca-v { stroke: var(--sobre-acc); }
+.logotipo { display: flex; align-items: center; gap: 8px; }
+.logo-nome { font-family: var(--serif); font-weight: 500; font-size: 20px; letter-spacing: -.01em; color: var(--tx); }
+
+/* ---------- Hoje: as duas ações à vista ---------- */
+.btn-foto { margin-left: auto; min-height: 44px; padding: 0 12px; border: 0; border-radius: 12px; background: var(--tecla);
+  display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--tx); white-space: nowrap; }
+.btn-foto:active { background: var(--tecla-ativa); }
+.visor-linha { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+.visor-linha .visor { flex: 1; min-width: 0; }
+.visor-linha .icone-btn { margin-left: 0; }
+.visor.vazio-v { font-size: 20px; }
+/* o cursor piscando diz "é aqui que você digita"; quem pediu menos movimento vê o traço parado */
+.cursor { display: inline-block; width: 2px; height: .9em; margin-left: 4px; vertical-align: -.1em; background: var(--acc); animation: pisca 1.1s steps(1) infinite; }
+@keyframes pisca { 50% { opacity: 0; } }
+.dica { font-size: 12px; color: var(--tx2); margin-top: 8px; text-align: center; }
+
+/* ---------- barra de baixo: Hoje no centro, um pouco maior ---------- */
+.nav a.centro svg { width: 26px; height: 26px; }
+
+/* ---------- primeiro acesso (tela cheia, por cima do app) ---------- */
+.primeiro { position: fixed; top: 0; bottom: 0; left: 0; right: 0; margin: 0 auto; max-width: var(--coluna); z-index: 60;
+  background: var(--fundo); overflow-y: auto; display: flex; flex-direction: column; }
+.pa-topo { display: grid; grid-template-columns: 80px 1fr 80px; align-items: center; padding: 8px 12px; }
+.pa-topo .link { justify-self: end; }
+.pa-indicador { text-align: center; font-size: 12px; color: var(--tx2); }
+.pa-pontos { display: flex; gap: 8px; justify-content: center; margin-bottom: 4px; }
+.pa-pontos span { width: 6px; height: 6px; border-radius: 50%; background: var(--borda); }
+.pa-pontos span.feito { background: var(--acc); }
+.pa-corpo { padding: 16px 20px 24px; flex: 1; display: flex; flex-direction: column; }
+.pa-corpo h1 { font-size: 28px; line-height: 1.2; }
+.pa-corpo > .sub { margin-top: 8px; }
+.pa-abertura { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: 24px 0; }
+.pa-abertura .logo-nome { font-size: 44px; }
+.pa-abertura p { color: var(--tx2); font-size: 16px; max-width: 300px; }
+.pa-fim { margin-top: auto; padding-top: 24px; display: grid; gap: 8px; }
+.pa-visor { font-size: 36px; font-weight: 600; text-align: right; padding: 24px 4px 16px; border-bottom: 1px solid var(--borda); margin-bottom: 16px; }
+.pa-visor.vazio-v { color: var(--tx3); font-weight: 400; }
+.chips.quebra { flex-wrap: wrap; overflow: visible; margin: 16px 0 0; padding: 0; }
+.pa-editor { display: grid; grid-template-columns: 1fr 112px; gap: 8px; margin-top: 16px; }
+.pa-editor .botao { grid-column: 1 / -1; }
+
+/* ---------- parcelas: gráfico dos próximos 12 meses ---------- */
+.grafico { margin-top: 16px; }
+.barras { position: relative; display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; align-items: end; height: 140px; border-bottom: 1px solid var(--borda); }
+.barra-mes { display: flex; flex-direction: column-reverse; height: 100%; }
+.barra-mes span { display: block; width: 100%; }
+.barra-mes .existente { background: var(--barra); border-radius: 0 0 2px 2px; }
+.barra-mes .nova { background: var(--acc-claro); border-radius: 2px 2px 0 0; }
+.limite-linha { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--tx); pointer-events: none; }
+.meses-rot { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; font-size: 11px; color: var(--tx2); text-align: center; margin-top: 4px; }
+.legenda { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--tx2); margin-top: 8px; }
+.legenda i { display: inline-block; width: 12px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: 0; }
+.legenda i.tracado { height: 0; border-top: 1px dashed var(--tx); border-radius: 0; vertical-align: 3px; }
+
+/* ---------- computador: a coluna no meio, sobre um fundo liso ---------- */
+.lateral { display: none; }
+@media (min-width: 700px) {
+  body { background: var(--pagina); }
+  .app { border-left: 1px solid var(--borda); border-right: 1px solid var(--borda); }
+  dialog.folha { margin: auto; border-radius: 16px; }
+}
+@media (min-width: 1100px) {
+  /* coluna e painel lado a lado, os dois juntos no centro; a barra e o aviso acompanham a coluna */
+  .app { margin-left: calc(50% - 370px); margin-right: 0; }
+  .nav, .primeiro { margin-left: calc(50% - 370px); }
+  .toast { margin-left: calc(50% - 354px); }
+  .lateral { display: block; position: fixed; top: 40px; left: calc(50% + 90px); width: 280px; }
+  .lateral h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--tx2); font-weight: 600; }
+  .lateral .big { font-size: 28px; font-weight: 600; margin-top: 8px; }
+  .lateral .titulo-sec { margin-top: 32px; }
+}
+/* quem pediu menos movimento no sistema não vê nada deslizar nem contar */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="faixa-demo" id="faixa-demo" hidden>
+    <span>Exemplo com dados fictícios</span>
+    <button type="button" id="apagar-demo">Apagar exemplo</button>
+  </div>
+  <main>
+    <section class="tela" id="tela-hoje" aria-label="Hoje"></section>
+    <section class="tela" id="tela-mes" aria-label="Mês" hidden></section>
+    <section class="tela" id="tela-hist" aria-label="Histórico" hidden></section>
+    <section class="tela" id="tela-calc" aria-label="Calculadoras" hidden></section>
+    <section class="tela ajustes" id="tela-ajustes" aria-label="Ajustes" hidden></section>
+  </main>
+  <nav class="nav" id="nav" aria-label="Telas"></nav>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+<section class="primeiro" id="primeiro" aria-label="Primeiro acesso" hidden></section>
+<aside class="lateral" id="lateral" aria-label="Resumo do mês"></aside>
+<dialog class="folha" id="folha" aria-labelledby="folha-titulo"></dialog>
+
+<script>
+'use strict';
+/* =============================================================================
+   Vintém: finanças pessoais num arquivo só, sem biblioteca e sem servidor.
+   Ideia: o app abre no teclado. Digitar o valor e tocar na categoria já lança.
+   No topo, um número só: quanto dá para gastar hoje sem passar do mês.
+   Dinheiro fica sempre em CENTAVOS inteiros (R$ 1,00 = 100): soma de inteiros não
+   tem erro de arredondamento, soma de 0,1 + 0,2 tem.
+   ============================================================================= */
+
+/* ==================== constantes ==================== */
+const KEY = 'OF_v1';     // chave dos dados no navegador (a mesma das versões anteriores: nada se perde)
+const SCHEMA_V = 4;      // versão do formato; a 3 era a do painel antigo e é migrada sozinha
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const SEMANA = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+
+/* Categorias de uma instalação nova: [id, nome, ícone, tipo]. tipo 'g' = gasto, 'e' = entrada.
+   "fixas" é especial: o que entra nela já foi descontado no começo do mês (as contas fixas)
+   e por isso não mexe no "Hoje dá para gastar". */
+const CATS_PADRAO = [
+  ['mercado', 'Mercado', 'carrinho', 'g'], ['comida', 'Comer fora', 'talheres', 'g'], ['cafe', 'Padaria e café', 'cafe', 'g'],
+  ['transporte', 'Transporte', 'onibus', 'g'], ['saude', 'Saúde', 'remedio', 'g'], ['lazer', 'Lazer', 'filme', 'g'],
+  ['casa', 'Casa', 'casa', 'g'], ['compras', 'Compras', 'sacola', 'g'], ['outros', 'Outros', 'reticencias', 'g'],
+  ['fixas', 'Contas fixas', 'recibo', 'g'],
+  ['salario', 'Salário', 'maleta', 'e'], ['extra', 'Extra', 'moedas', 'e'], ['outras-entradas', 'Outras entradas', 'mais', 'e']
+];
+/* O ícone de cada id conhecido: os padrão e os do painel antigo. Serve para dados salvos antes
+   dos ícones (que tinham emoji): eles ganham o ícone certo sozinhos ao abrir. */
+const ICONE_POR_ID = Object.assign({restaurante: 'talheres', alimentacao: 'cafe', assinaturas: 'tv', educacao: 'livro', viagem: 'aviao',
+  moradia: 'casa', bico: 'moedas', venda: 'etiqueta', ferias: 'aviao', decimo: 'presente'},
+  Object.fromEntries(CATS_PADRAO.map(function(c){ return [c[0], c[2]]; })));
+const CATS_PROTEGIDAS = ['fixas', 'outros', 'outras-entradas'];   // não dá para apagar: recebem o que sobra
+
+/* Palavras que sugerem uma categoria no extrato importado. NÃO é configurável de propósito
+   (as regras editáveis saíram para o app ficar simples): é só um empurrão inicial. Depois
+   disso vale o que você mesmo escolheu da última vez para a mesma descrição. */
+const PALAVRAS = [
+  ['ifood', 'comida'], ['restaurante', 'comida'], ['lanchonete', 'comida'], ['padaria', 'cafe'], ['cafeteria', 'cafe'],
+  ['supermercado', 'mercado'], ['mercado', 'mercado'], ['atacad', 'mercado'], ['uber', 'transporte'], ['onibus', 'transporte'],
+  ['posto', 'transporte'], ['combust', 'transporte'], ['farmacia', 'saude'], ['drogaria', 'saude'], ['academia', 'saude'],
+  ['cinema', 'lazer'], ['netflix', 'lazer'], ['spotify', 'lazer'], ['loja', 'compras'], ['salario', 'salario'],
+  // nomes comuns de notinha (a loja que aparece no topo do cupom)
+  ['pizzaria', 'comida'], ['lanches', 'comida'], ['hamburg', 'comida'], ['doceria', 'cafe'], ['confeitaria', 'cafe'], ['panific', 'cafe'],
+  ['hortifruti', 'mercado'], ['acougue', 'mercado'], ['carrefour', 'mercado'], ['assai', 'mercado'], ['pague menos', 'saude'],
+  ['drogasil', 'saude'], ['raia', 'saude'], ['pet', 'casa'], ['material de construcao', 'casa'], ['magazine', 'compras']
+];
+
+/* ==================== utilidades de data e dinheiro ==================== */
+function pad2(n){ return String(n).padStart(2, '0'); }
+function isoDe(d){ return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+function hojeISO(){ return isoDe(new Date()); }
+function ontemISO(){ const d = new Date(); d.setDate(d.getDate() - 1); return isoDe(d); }
+function mesAtual(){ return hojeISO().slice(0, 7); }
+// soma n meses a "aaaa-mm" (n negativo volta); o Date cuida da virada de ano
+function addMeses(ym, n){
+  const d = new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1 + n, 1);
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1);
+}
+function diasNoMes(ym){ return new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0).getDate(); }
+function mesLabel(ym){ const n = MESES[+ym.slice(5, 7) - 1]; return n.charAt(0).toUpperCase() + n.slice(1) + ' de ' + ym.slice(0, 4); }
+function dataDe(iso){ return new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)); }
+// "sábado, 24 de outubro" (ou "hoje" e "ontem", que é como a gente fala)
+function diaLabel(iso){
+  if(iso === hojeISO()) return 'hoje';
+  if(iso === ontemISO()) return 'ontem';
+  return SEMANA[dataDe(iso).getDay()] + ', ' + (+iso.slice(8, 10)) + ' de ' + MESES[+iso.slice(5, 7) - 1];
+}
+function fmtDinheiro(cent){ return (cent / 100).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'}); }
+// valor para dentro de um campo ("1.234,56"); zero vira campo vazio
+function fmtCampo(cent){ return cent ? (cent / 100).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : ''; }
+// com sinal na frente: "+R$ 50,00" para entrada e "-R$ 18,50" para gasto
+// o sinal de menos tipográfico (−) tem a largura do +: com o hífen comum o valor parece desalinhado
+function fmtSinal(cent){ return (cent > 0 ? '+' : '') + fmtDinheiro(cent).replace('-', '−'); }
+
+/* Texto de dinheiro em qualquer formato comum ("R$ 1.234,56", "-18,50", "(12.5)", "1234.5")
+   vira centavos inteiros. Por que tão tolerante: cada banco exporta de um jeito. Devolve null sem número. */
+function parseMoney(s){
+  if(typeof s === 'number' && isFinite(s)) return Math.round(s * 100);
+  s = String(s == null ? '' : s).trim();
+  if(!s) return null;
+  let neg = false;
+  if(/^\(.*\)$/.test(s)){ neg = true; s = s.slice(1, -1); }
+  s = s.replace(/R\$\s*/ig, '').replace(/\s/g, '');
+  if(s.startsWith('-')){ neg = !neg; s = s.slice(1); }
+  if(s.endsWith('-')){ neg = !neg; s = s.slice(0, -1); }
+  if(!/\d/.test(s)) return null;
+  // a última vírgula, ou o último ponto com 1 ou 2 casas depois, é o separador decimal
+  const lastC = s.lastIndexOf(','), lastD = s.lastIndexOf('.');
+  let dec = -1;
+  if(lastC > lastD) dec = lastC;
+  else if(lastD > lastC){ const depois = s.length - lastD - 1; if(depois >= 1 && depois <= 2) dec = lastD; }
+  let cents;
+  if(dec >= 0){
+    const inteiro = s.slice(0, dec).replace(/\D/g, '') || '0';
+    const frac = (s.slice(dec + 1).replace(/\D/g, '') + '00').slice(0, 2);
+    cents = parseInt(inteiro, 10) * 100 + parseInt(frac, 10);
+  } else cents = parseInt(s.replace(/\D/g, ''), 10) * 100;
+  if(!isFinite(cents)) return null;
+  return neg ? -cents : cents;
+}
+// "aaaa-mm-dd", "dd/mm/aaaa", "dd-mm-aa" e o número de data do Excel viram "aaaa-mm-dd"
+function parseDateAny(s){
+  s = String(s == null ? '' : s).trim();
+  if(!s) return null;
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return valida(m[1], m[2], m[3]);
+  m = s.match(/^(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{2,4})/);
+  if(m){ let a = m[3]; if(a.length === 2) a = '20' + a; return valida(a, m[2], m[1]); }
+  if(/^\d{5}$/.test(s) && +s >= 20000 && +s <= 60000){
+    const dt = new Date(Date.UTC(1899, 11, 30) + +s * 86400000);
+    return dt.getUTCFullYear() + '-' + pad2(dt.getUTCMonth() + 1) + '-' + pad2(dt.getUTCDate());
+  }
+  return null;
+  function valida(y, mo, d){
+    const yy = +y, mm = +mo, dd = +d;
+    if(yy < 2000 || yy > 2100 || mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+    return yy + '-' + pad2(mm) + '-' + pad2(dd);
+  }
+}
+// minúsculas e sem acento: "Salário" e "salario" viram a mesma coisa na hora de comparar
+function normal(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim(); }
+function uid(){ return 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+// primeira letra maiúscula ("sábado, 24 de outubro" vira "Sábado, 24 de outubro")
+function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+function plural(n, um, varios){ return n + ' ' + (n === 1 ? um : varios); }
+// prefers-reduced-motion: quem pediu menos movimento vê o número trocar direto, sem contar
+function semMovimento(){ return matchMedia('(prefers-reduced-motion: reduce)').matches; }
+
+/* h('tag', {atributos}, filhos...) cria um elemento. Por que: montar a tela com objetos
+   (e não com texto HTML) impede que uma descrição do extrato vire código na página. */
+function h(tag, attrs){
+  const e = document.createElement(tag);
+  for(const k in (attrs || {})){
+    const v = attrs[k];
+    if(v === null || v === undefined || v === false) continue;
+    if(k === 'class') e.className = v;
+    else if(k.slice(0, 2) === 'on' && typeof v === 'function') e.addEventListener(k.slice(2), v);
+    else if(k === 'value') e.value = v;
+    else e.setAttribute(k, v);
+  }
+  for(let i = 2; i < arguments.length; i++){
+    [].concat(arguments[i]).forEach(function(kid){
+      if(kid === null || kid === undefined || kid === false) return;
+      e.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+    });
+  }
+  return e;
+}
+/* Ícones de traço no estilo Lucide (lucide.dev, licença ISC, nota no README): mesmo traço de
+   1,75 px, pontas e cantos redondos, desenho de 24 x 24. Ficam aqui como texto para o app
+   continuar um arquivo só. Por que um conjunto único: ícones de famílias diferentes (ou emoji)
+   são o que mais denuncia uma tela remendada. */
+const ICONES = {
+  // barra de baixo e botões
+  hoje: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+  mes: '<path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+  hist: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+  calc: '<rect width="16" height="20" x="4" y="2" rx="2"/><path d="M8 6h8M16 14v4M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/>',
+  ajustes: '<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>',
+  camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+  lapis: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+  apagar: '<path d="M10 5a2 2 0 0 0-1.344.519l-6.328 5.74a1 1 0 0 0 0 1.481l6.328 5.741A2 2 0 0 0 10 19h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><path d="m12 9 6 6M18 9l-6 6"/>',
+  esq: '<path d="m15 18-6-6 6-6"/>',
+  dir: '<path d="m9 18 6-6-6-6"/>',
+  fechar: '<path d="M18 6 6 18M6 6l12 12"/>',
+  busca: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  vazio: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  ajuda: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>',
+  // categorias
+  carrinho: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+  talheres: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+  cafe: '<path d="M10 2v2M14 2v2M6 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/>',
+  onibus: '<path d="M8 6v6M15 6v6M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>',
+  remedio: '<path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>',
+  filme: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/>',
+  casa: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  sacola: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/>',
+  reticencias: '<circle cx="12" cy="12" r="10"/><path d="M17 12h.01M12 12h.01M7 12h.01"/>',
+  recibo: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 17.5v-11"/>',
+  maleta: '<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
+  moedas: '<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/>',
+  mais: '<circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/>',
+  etiqueta: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5"/>',
+  presente: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/>',
+  aviao: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  livro: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  coracao: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+  camisa: '<path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/>',
+  tv: '<rect width="20" height="15" x="2" y="7" rx="2"/><path d="m17 2-5 5-5-5"/>',
+  celular: '<rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/>',
+  carro: '<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>'
+};
+// os ícones que dá para escolher para uma categoria (Ajustes)
+const ICONES_CAT = ['carrinho', 'talheres', 'cafe', 'onibus', 'carro', 'remedio', 'filme', 'tv', 'casa', 'sacola', 'camisa', 'presente',
+  'aviao', 'livro', 'coracao', 'celular', 'recibo', 'maleta', 'moedas', 'mais', 'etiqueta', 'reticencias'];
+function icone(nome, tam){
+  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const a = {viewBox: '0 0 24 24', width: tam || 22, height: tam || 22, fill: 'none', stroke: 'currentColor', 'stroke-width': '1.75',
+    'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'class': 'ic', 'aria-hidden': 'true'};
+  for(const k in a) s.setAttribute(k, a[k]);
+  s.innerHTML = ICONES[nome] || ICONES.etiqueta;   // texto fixo deste arquivo, nunca dado do usuário
+  return s;
+}
+
+/* ==================== estado: carregar, migrar e salvar ==================== */
+/* S guarda TUDO: config (renda, tema, exemplo), fixas (contas fixas), cats (categorias) e tx
+   (lançamentos: id, d = data, desc, v = valor em centavos, negativo é gasto, cat, org = origem).
+   O backup é este objeto em JSON. */
+let S = null;
+let PODE_SALVAR = true;     // false quando os dados são de uma versão mais nova (não gravar por cima)
+let PRIMEIRA_VEZ = false;   // true quando o navegador não tem nada salvo (abre as boas-vindas)
+
+function catsPadrao(){ return CATS_PADRAO.map(function(c){ return {id: c[0], nome: c[1], icone: c[2], tipo: c[3], limite: 0}; }); }
+// parcelas = as compras parceladas que a pessoa já paga; limitePct = o "limite confortável" do gráfico de parcelas;
+// jaLancou = já fez o primeiro lançamento (a dica da tela Hoje some)
+function fresh(){ return {schema_v: SCHEMA_V, config: {renda: 0, tema: 'auto', demo: false, mapaCSV: {}, limitePct: 30, jaLancou: false}, fixas: [], parcelas: [], cats: catsPadrao(), tx: []}; }
+
+/* Dados do painel antigo (formato 3) viram o formato novo. Por que existe: quem já usava não
+   perde nada. O que muda: categorias marcadas como "fixa" viram "Contas fixas"; o orçamento de
+   cada categoria vira o limite; as contas que se repetiam viram contas fixas; a renda é o
+   líquido digitado ou, se o painel calculava o imposto, o que entrou no último mês completo. */
+function migrar(s){
+  if(!s || typeof s !== 'object') return fresh();
+  if(s.schema_v === SCHEMA_V && Array.isArray(s.tx) && Array.isArray(s.cats)){
+    const n = fresh();
+    n.config = Object.assign(n.config, s.config || {});
+    n.fixas = Array.isArray(s.fixas) ? s.fixas : [];
+    n.parcelas = Array.isArray(s.parcelas) ? s.parcelas : [];
+    n.cats = s.cats;
+    n.tx = s.tx;
+    CATS_PROTEGIDAS.forEach(function(id){   // as protegidas sempre existem
+      if(!n.cats.some(function(c){ return c.id === id; })) n.cats.push(catsPadrao().find(function(c){ return c.id === id; }));
+    });
+    // categoria salva antes dos ícones de traço: ganha o ícone pelo id (o emoji antigo fica guardado, sem uso)
+    n.cats.forEach(function(c){ if(!c.icone) c.icone = ICONE_POR_ID[c.id] || (c.tipo === 'e' ? 'moedas' : 'etiqueta'); });
+    return n;
+  }
+  const n = fresh();
+  const velhas = Array.isArray(s.categorias) ? s.categorias : [];
+  const vira = {};   // id antigo -> id novo
+  velhas.forEach(function(c){
+    if(c.tipo !== 'r' && c.fixa){ vira[c.id] = 'fixas'; return; }
+    if(c.id === 'outros'){ vira[c.id] = 'outros'; return; }
+    const tipo = c.tipo === 'r' ? 'e' : 'g';
+    let ex = n.cats.find(function(x){ return x.id === c.id && x.tipo === tipo; });
+    if(!ex){ ex = {id: c.id, nome: c.nome, icone: ICONE_POR_ID[c.id] || (tipo === 'e' ? 'moedas' : 'etiqueta'), tipo: tipo, limite: 0}; n.cats.push(ex); }
+    if(tipo === 'g' && c.orc > 0) ex.limite = c.orc;
+    vira[c.id] = ex.id;
+  });
+  n.tx = (Array.isArray(s.tx) ? s.tx : []).filter(function(t){ return t && t.d && typeof t.v === 'number'; }).map(function(t){
+    const cat = vira[t.cat] || (t.v > 0 ? 'outras-entradas' : 'outros');
+    return {id: t.id || uid(), d: t.d, desc: t.desc || '', v: t.v, cat: cat, org: t.org || 'man'};
+  });
+  n.fixas = (Array.isArray(s.recorrentes) ? s.recorrentes : []).filter(function(r){ return r.tipo === 'd' && r.ativo !== false; })
+    .map(function(r){ return {id: r.id || uid(), nome: r.nome || 'Conta', v: Math.abs(r.valor || 0)}; });
+  const cfg = s.config || {};
+  if(cfg.regime === 'liquido') n.config.renda = cfg.salarioBruto || 0;
+  else {
+    const ym = addMeses(mesAtual(), -1);
+    n.config.renda = n.tx.filter(function(t){ return t.d.slice(0, 7) === ym && t.v > 0; }).reduce(function(a, t){ return a + t.v; }, 0);
+  }
+  n.config.tema = cfg.tema || 'auto';
+  n.config.demo = !!cfg.demo;
+  return n;
+}
+
+function load(){
+  let raw = null;
+  try{ raw = localStorage.getItem(KEY); }catch(e){ PODE_SALVAR = false; }
+  if(!raw){ S = fresh(); PRIMEIRA_VEZ = true; return; }
+  try{
+    const s = JSON.parse(raw);
+    if(typeof s.schema_v === 'number' && s.schema_v > SCHEMA_V){
+      PODE_SALVAR = false;   // dados de uma versão mais nova: mostra, mas não grava por cima
+      S = migrar(s);
+      return;
+    }
+    if(s.schema_v !== SCHEMA_V){ try{ localStorage.setItem(KEY + '_formato' + s.schema_v, raw); }catch(_){} } // cópia do formato antigo
+    S = migrar(s);
+    if(s.schema_v !== SCHEMA_V) save();
+  }catch(e){
+    // dado ilegível: guarda a cópia crua antes de começar do zero (nada se perde de vez)
+    try{ localStorage.setItem(KEY + '_corrompido_' + Date.now(), raw); }catch(_){}
+    S = fresh();
+  }
+}
+// grava a cada mudança; a versão anterior fica em OF_v1_prev como rede de segurança
+function save(){
+  if(!PODE_SALVAR) return;
+  try{
+    const prev = localStorage.getItem(KEY);
+    if(prev) localStorage.setItem(KEY + '_prev', prev);
+    localStorage.setItem(KEY, JSON.stringify(S));
+  }catch(e){
+    toast('Não consegui salvar neste navegador: ' + e.message);
+  }
+}
+
+/* "Desfazer" em vez de "tem certeza?": antes de mudar, guarda uma cópia; o botão do aviso
+   devolve a cópia. Por que: perguntar antes custa um toque em TODA ação; errar é raro. */
+function comDesfazer(msg, mudar){
+  const antes = JSON.stringify(S);
+  mudar();
+  save(); render();
+  toast(msg, ['Desfazer', function(){ S = JSON.parse(antes); save(); render(); toast('Desfeito.'); }]);
+}
+
+/* ==================== aviso que desliza (toast) ==================== */
+let toastTimer = null;
+function toast(msg, acao){
+  const t = document.getElementById('toast');
+  t.textContent = '';
+  t.appendChild(h('span', null, msg));
+  if(acao) t.appendChild(h('button', {type: 'button', onclick: function(){ esconderToast(); acao[1](); }}, acao[0]));
+  t.classList.add('visivel');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(esconderToast, acao ? 6000 : 3000);
+}
+function esconderToast(){ document.getElementById('toast').classList.remove('visivel'); }
+
+/* ==================== contas do mês ==================== */
+function txMes(ym){ return S.tx.filter(function(t){ return t.d.slice(0, 7) === ym; }); }
+function catPorId(id){ return S.cats.find(function(c){ return c.id === id; }) || null; }
+function catDe(t){ return catPorId(t.cat) || catPorId(t.v > 0 ? 'outras-entradas' : 'outros'); }
+function totalFixas(){ return S.fixas.reduce(function(a, f){ return a + (f.v || 0); }, 0); }
+// o que entrou, o que saiu e o saldo de um mês, direto dos lançamentos (o "extrato" do mês)
+function resumoMes(ym){
+  const r = {entrou: 0, saiu: 0};
+  txMes(ym).forEach(function(t){ if(t.v > 0) r.entrou += t.v; else r.saiu -= t.v; });
+  r.sobra = r.entrou - r.saiu;
+  return r;
+}
+// gasto variável = tudo o que saiu no mês, menos o que foi lançado em "Contas fixas"
+function gastoVariavel(ym){
+  return txMes(ym).reduce(function(a, t){ return t.v < 0 && t.cat !== 'fixas' ? a - t.v : a; }, 0);
+}
+/* Entradas além da renda: tudo o que entrou no mês FORA da categoria Salário. Por que o Salário
+   fica de fora: ele já é a "renda do mês" dos Ajustes; somar de novo contaria duas vezes. */
+function extrasDoMes(ym){
+  return txMes(ym).reduce(function(a, t){ return t.v > 0 && t.cat !== 'salario' ? a + t.v : a; }, 0);
+}
+/* O número do topo: (renda + entradas extras − contas fixas − parcelas do mês − gasto variável
+   do mês) ÷ dias que faltam, contando hoje. As parcelas abertas contam como conta fixa. Por que dividir por dia: "sobram R$ 900" não diz se dá para jantar fora
+   hoje; "hoje dá para gastar R$ 90" diz. Gastou menos hoje? Amanhã o número sobe sozinho. */
+function contaHoje(){
+  const ym = mesAtual(), dia = +hojeISO().slice(8, 10), total = diasNoMes(ym);
+  const restante = (S.config.renda || 0) + extrasDoMes(ym) - totalFixas() - parcelasDoMes(ym) - gastoVariavel(ym);
+  const dias = total - dia + 1;
+  return {restante: restante, dias: dias, porDia: Math.round(restante / dias), dia: dia, total: total};
+}
+// gasto de cada categoria no mês (só saídas)
+function gastoPorCat(ym){
+  const g = {};
+  txMes(ym).forEach(function(t){ if(t.v < 0){ const c = catDe(t).id; g[c] = (g[c] || 0) - t.v; } });
+  return g;
+}
+
+/* Sugestão de categoria, automática (sem regra para configurar):
+   1. a descrição contém o nome de uma conta fixa ("Pix Aluguel") -> Contas fixas;
+   2. a última vez que você lançou a mesma descrição -> a mesma categoria;
+   3. uma palavra conhecida do extrato ou da notinha ("ifood" -> Comer fora);
+   4. sem descrição: a categoria que você mais usou nos últimos 60 dias.
+   No importador o passo 4 vira "Outros", para não jogar o extrato inteiro numa categoria só. */
+function sugerirCat(tipo, desc, paraImportar){
+  const d = normal(desc);
+  const existe = function(id){ const c = catPorId(id); return c && c.tipo === tipo ? id : null; };
+  if(d){
+    if(tipo === 'g' && S.fixas.some(function(f){ const n = normal(f.nome); return n.length >= 3 && d.indexOf(n) >= 0; })) return 'fixas';
+    for(let i = S.tx.length - 1; i >= 0; i--){
+      const t = S.tx[i];
+      if(normal(t.desc) === d && (t.v > 0 ? 'e' : 'g') === tipo && existe(t.cat)) return t.cat;
+    }
+    for(const p of PALAVRAS){ if(d.indexOf(p[0]) >= 0 && existe(p[1])) return p[1]; }
+  }
+  if(paraImportar) return tipo === 'e' ? 'outras-entradas' : 'outros';
+  const desde = isoDe(new Date(Date.now() - 60 * 86400000)), conta = {};
+  S.tx.forEach(function(t){
+    if(t.d >= desde && (t.v > 0 ? 'e' : 'g') === tipo && t.cat !== 'fixas' && existe(t.cat)) conta[t.cat] = (conta[t.cat] || 0) + 1;
+  });
+  let melhor = null;
+  Object.keys(conta).forEach(function(k){ if(!melhor || conta[k] > conta[melhor]) melhor = k; });
+  return melhor || (S.cats.find(function(c){ return c.tipo === tipo && c.id !== 'fixas'; }) || {}).id;
+}
+
+/* ==================== número que conta ao mudar ==================== */
+/* Anima de quanto estava até o valor novo em ~0,45 s. O data-centavos já recebe o valor final
+   na hora (é o que os testes e leitores de tela leem); só o texto conta. */
+function mostrarValor(el, cent, formato){
+  const fmt = formato || fmtDinheiro;
+  const de = el.dataset.centavos === undefined ? null : +el.dataset.centavos;
+  el.dataset.centavos = cent;
+  if(el._anim) cancelAnimationFrame(el._anim);
+  if(de === null || de === cent || semMovimento()){ el.textContent = fmt(cent); return; }
+  const t0 = performance.now(), dur = 450;
+  const passo = function(agora){
+    const p = Math.min(1, (agora - t0) / dur), suave = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(Math.round(de + (cent - de) * suave));
+    if(p < 1) el._anim = requestAnimationFrame(passo); else el._anim = null;
+  };
+  el._anim = requestAnimationFrame(passo);
+}
+
+/* ==================== ícone de categoria e lista vazia ==================== */
+// o ícone de traço da categoria num círculo de tom neutro; a cor de destaque fica só para a escolhida
+function iconeCat(c){ return h('span', {'class': 'ic-cat', 'aria-hidden': 'true'}, icone((c && c.icone) || ICONE_POR_ID[c && c.id] || 'etiqueta', 20)); }
+// lista vazia: um ícone de traço e uma frase curta
+function vazio(texto){ return h('div', {'class': 'vazio'}, icone('vazio', 28), texto); }
+
+/* ==================== tela Hoje ==================== */
+/* O que está sendo digitado: txt = o valor como texto ("18,5"), tipo 'g' ou 'e', cat = categoria
+   escolhida (null = vale a sugerida), det = detalhes abertos, data (null = hoje), desc e
+   nota = o estado da leitura da notinha (null, 'lendo', 'lido' ou 'erro'). */
+const DIG = {txt: '', tipo: 'g', cat: null, det: false, data: null, desc: '', nota: null};
+function limparDIG(){ Object.assign(DIG, {txt: '', tipo: 'g', cat: null, det: false, data: null, desc: '', nota: null}); }
+let ULTIMO_ID = null;   // o lançamento que acabou de entrar: ganha uma transição curta na lista
+
+function valorDigitado(){ return DIG.txt ? parseMoney(DIG.txt) || 0 : 0; }
+// "1234,5" aparece como "1.234,5": separa o milhar sem mexer no que a pessoa digitou depois da vírgula
+function fmtDigitado(txt){
+  if(!txt) return 'R$ 0';
+  const p = txt.split(',');
+  return 'R$ ' + (+p[0]).toLocaleString('pt-BR') + (p.length > 1 ? ',' + p[1] : '');
+}
+/* A regra das teclas (dígito, 00, vírgula, apagar, limpar): recebe o texto e a tecla e devolve o
+   texto novo, ou null quando a tecla não cabe (mais de R$ 9.999.999,99 ou 3 casas depois da
+   vírgula). Fica separada para o teclado do Hoje e o do primeiro acesso se comportarem igual. */
+function editarValor(t, k){
+  if(k === 'del') return t.slice(0, -1);
+  if(k === 'C') return '';
+  if(k === ',') return t.indexOf(',') < 0 ? (t || '0') + ',' : t;
+  const novo = (t === '0' ? '' : t) + k;
+  const p = novo.split(',');
+  if(p[0].length > 7 || (p[1] && p[1].length > 2)) return null;
+  return /^0+$/.test(novo) ? '0' : novo.replace(/^0+(?=\d)/, '');
+}
+// uma tecla do teclado da tela Hoje: as de valor editam o visor; o OK lança
+function tecla(k){
+  if(k === 'ok'){ lancar(DIG.cat || sugerirCat(DIG.tipo, DIG.desc)); return; }
+  const t = editarValor(DIG.txt, k);
+  if(t === null) return;
+  DIG.txt = t;
+  atualizaVisor();
+}
+/* O teclado da tela (o mesmo no Hoje e no primeiro acesso): grade de 4 colunas com o OK alto na
+   coluna da direita, como numa maquininha. */
+function criarTeclado(id, idOk, aoTocar){
+  const teclas = ['1', '2', '3', 'del', '4', '5', '6', 'C', '7', '8', '9', 'ok', ',', '0', '00'];
+  const nomes = {del: 'Apagar', ok: 'OK', ',': 'Vírgula', C: 'Limpar', '00': 'Dois zeros'};
+  return h('div', {'class': 'teclado', id: id}, teclas.map(function(k){
+    const b = h('button', {type: 'button', 'class': 'tecla' + (k === 'ok' ? ' ok' : /^(del|C)$/.test(k) ? ' fn' : ''), 'data-k': k,
+      id: k === 'ok' ? idOk : null, 'aria-label': nomes[k] || k, onclick: function(){ aoTocar(k); }},
+      k === 'del' ? icone('apagar', 22) : k === 'ok' ? 'OK' : k);
+    // resposta ao toque também no iPhone, onde o :active só aparece com um ouvinte de toque
+    b.addEventListener('pointerdown', function(){ b.classList.add('apertada'); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function(ev){ b.addEventListener(ev, function(){ b.classList.remove('apertada'); }); });
+    return b;
+  }));
+}
+function atualizaVisor(){
+  const v = document.getElementById('visor');
+  if(!v) return;
+  // vazio, o visor pergunta (e o cursor piscando mostra que é ali que se digita)
+  v.textContent = DIG.txt ? (DIG.tipo === 'e' ? '+ ' : '') + fmtDigitado(DIG.txt) : (DIG.tipo === 'e' ? 'Quanto entrou?' : 'Quanto você gastou?');
+  v.appendChild(h('span', {'class': 'cursor', 'aria-hidden': 'true'}));
+  v.className = 'visor num' + (DIG.txt ? '' : ' vazio-v') + (DIG.tipo === 'e' ? ' entrada' : '');
+  v.dataset.centavos = valorDigitado();
+  document.getElementById('tecla-ok').disabled = !valorDigitado();
+}
+/* Lançar: o valor digitado vai para a categoria tocada. Por que não pede confirmação: o aviso
+   "Desfazer" resolve o engano com um toque, e o caso comum (acertar) fica com 2 toques.
+   O retorno é discreto: o visor zera, o item entra na lista e o aviso aparece. */
+function lancar(catId){
+  const v = valorDigitado();
+  if(!v || !catId) return;
+  const c = catPorId(catId);
+  const t = {id: uid(), d: DIG.data || hojeISO(), desc: DIG.desc.trim(), v: DIG.tipo === 'e' ? v : -v, cat: catId, org: 'man'};
+  const antes = JSON.stringify(S);
+  S.tx.push(t);
+  S.config.jaLancou = true;   // a dica de primeiro uso some
+  ULTIMO_ID = t.id;
+  limparDIG();
+  save(); render();
+  toast('Lançado ' + fmtDinheiro(Math.abs(t.v)) + ' · ' + c.nome,
+    ['Desfazer', function(){ S = JSON.parse(antes); save(); render(); toast('Desfeito'); }]);
+}
+// tocar numa categoria: com valor digitado, lança; sem valor, só deixa marcada para o OK
+function tocarCat(id){
+  if(valorDigitado()) lancar(id);
+  else { DIG.cat = DIG.cat === id ? null : id; desenharCats(); }
+}
+
+function renderHoje(){
+  const sec = document.getElementById('tela-hoje');
+  if(!sec.firstChild) montarHoje(sec);
+  const c = contaHoje(), el = document.getElementById('hoje-valor'), rotulo = document.getElementById('hoje-rotulo');
+  const semRenda = !S.config.renda;
+  const agora = new Date();
+  document.getElementById('hoje-data').textContent = cap(SEMANA[agora.getDay()]) + ', ' + agora.getDate() + ' de ' + MESES[agora.getMonth()];
+  document.getElementById('pede-renda').hidden = !semRenda;
+  el.hidden = semRenda;
+  document.getElementById('hoje-ritmo').hidden = semRenda;
+  if(semRenda){
+    rotulo.textContent = 'Informe sua renda para ver quanto dá para gastar hoje.';
+    delete el.dataset.centavos;
+  } else if(c.restante >= 0){
+    rotulo.textContent = 'Hoje dá para gastar';
+    el.className = 'grande num';
+    mostrarValor(el, c.porDia);
+    document.getElementById('hoje-ritmo-txt').textContent = 'Sobram ' + fmtDinheiro(c.restante) + ' para ' + plural(c.dias, 'dia', 'dias');
+  } else {
+    // passou do mês: o tom é de alerta, sem drama; o texto diz quanto passou
+    rotulo.textContent = 'Neste mês, você';
+    el.className = 'grande num ruim';
+    mostrarValor(el, c.porDia, function(){ return 'passou ' + fmtDinheiro(-c.restante) + ' do ritmo'; });
+    document.getElementById('hoje-ritmo-txt').textContent = 'Faltam ' + plural(c.dias, 'dia', 'dias');
+  }
+  document.getElementById('hoje-dia').textContent = 'Dia ' + c.dia + ' de ' + c.total;
+  document.getElementById('hoje-tempo').style.width = Math.round(c.dia / c.total * 100) + '%';
+  document.querySelectorAll('#tipo-sel button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.tipo === DIG.tipo)); });
+  document.getElementById('detalhes').hidden = !DIG.det;
+  document.getElementById('btn-detalhes').setAttribute('aria-expanded', String(DIG.det));
+  document.getElementById('hoje-dica').hidden = !!S.config.jaLancou;
+  const dataEscolhida = DIG.data || hojeISO();
+  document.querySelectorAll('#quando button').forEach(function(b){
+    b.setAttribute('aria-pressed', String((b.dataset.q === 'ontem' ? ontemISO() : hojeISO()) === dataEscolhida)); });
+  document.getElementById('det-data').value = dataEscolhida;
+  document.getElementById('det-desc').value = DIG.desc;
+  desenharNotinha();
+  atualizaVisor();
+  desenharCats();
+  // os 3 últimos lançamentos de hoje (o mais recente primeiro); tocar abre para editar
+  const ul = document.getElementById('ultimos');
+  ul.textContent = '';
+  const deHoje = S.tx.filter(function(t){ return t.d === hojeISO(); }).slice(-3).reverse();
+  if(!deHoje.length) ul.appendChild(h('li', null, vazio('Nada lançado hoje')));
+  deHoje.forEach(function(t){ ul.appendChild(h('li', {'class': t.id === ULTIMO_ID ? 'entra' : null}, itemLancamento(t))); });
+  ULTIMO_ID = null;
+}
+// a parte fixa da tela Hoje é montada uma vez; o resto é atualizado a cada mudança
+function montarHoje(sec){
+  const tipoBotao = function(tipo, nome){
+    return h('button', {type: 'button', 'data-tipo': tipo, 'aria-pressed': 'false', onclick: function(){
+      DIG.tipo = tipo; DIG.cat = null; renderHoje(); }}, nome);
+  };
+  const quandoBotao = function(q, nome){
+    return h('button', {type: 'button', 'data-q': q, onclick: function(){ DIG.data = q === 'ontem' ? ontemISO() : null; renderHoje(); }}, nome);
+  };
+  const desc = h('input', {'class': 'entrada-txt largo', id: 'det-desc', type: 'text', placeholder: 'Descrição', maxlength: '80',
+    'aria-label': 'Descrição', oninput: function(){ DIG.desc = desc.value; desenharCats(); }});
+  const data = h('input', {'class': 'entrada-txt', id: 'det-data', type: 'date', 'aria-label': 'Data do lançamento',
+    onchange: function(){ DIG.data = data.value && data.value !== hojeISO() ? data.value : null; renderHoje(); }});
+  // a câmera: no celular "capture" abre a câmera de trás; no computador abre o seletor de arquivo
+  const arqNota = h('input', {type: 'file', accept: 'image/*', capture: 'environment', id: 'notinha-arquivo', hidden: 'hidden'});
+  arqNota.addEventListener('change', function(){
+    const f = arqNota.files && arqNota.files[0];
+    arqNota.value = '';
+    if(f) lerFotoNotinha(f);
+  });
+  const teclado = criarTeclado('teclado', 'tecla-ok', tecla);
+  sec.append(
+    h('div', {'class': 'hoje-topo'},
+      h('p', {'class': 'data-hoje', id: 'hoje-data'}),
+      h('p', {'class': 'rotulo', id: 'hoje-rotulo'}, 'Hoje dá para gastar'),
+      h('p', {'class': 'grande num', id: 'hoje-valor', 'aria-live': 'polite'}),
+      h('button', {'class': 'botao primario pede-renda', id: 'pede-renda', type: 'button', hidden: 'hidden',
+        onclick: function(){ irPara('ajustes'); setTimeout(function(){ const r = document.getElementById('aj-renda'); if(r) r.focus(); }, 50); }}, 'Informar a renda'),
+      h('div', {id: 'hoje-ritmo'},
+        h('div', {'class': 'tempo', 'aria-hidden': 'true'}, h('span', {id: 'hoje-tempo'})),
+        h('p', {'class': 'ritmo'}, h('span', {id: 'hoje-ritmo-txt'}), h('span', {id: 'hoje-dia'})))),
+    h('div', {'class': 'valor-caixa'},
+      // as duas formas de lançar ficam à vista: digitar (o visor pergunta) ou fotografar a nota
+      h('div', {'class': 'valor-linha'},
+        h('div', {'class': 'segmento', id: 'tipo-sel', role: 'group', 'aria-label': 'Gasto ou entrada'}, tipoBotao('g', 'Gasto'), tipoBotao('e', 'Entrada')),
+        h('button', {'class': 'btn-foto', type: 'button', id: 'btn-notinha', onclick: function(){ arqNota.click(); }}, icone('camera', 20), 'Fotografar nota'),
+        arqNota),
+      h('div', {'class': 'visor-linha'},
+        h('button', {'class': 'icone-btn', type: 'button', id: 'btn-detalhes', 'aria-expanded': 'false', 'aria-label': 'Data e descrição',
+          onclick: function(){ DIG.det = !DIG.det; renderHoje(); }}, icone('lapis', 22), 'Detalhes'),
+        h('output', {'class': 'visor num vazio-v', id: 'visor', 'aria-live': 'polite'})),
+      h('div', {'class': 'notinha', id: 'notinha-faixa', role: 'status', hidden: 'hidden'}),
+      h('div', {'class': 'detalhes', id: 'detalhes', hidden: 'hidden'},
+        h('div', {'class': 'segmento', id: 'quando', role: 'group', 'aria-label': 'Quando'}, quandoBotao('hoje', 'Hoje'), quandoBotao('ontem', 'Ontem')),
+        data, desc)),
+    h('p', {'class': 'dica', id: 'hoje-dica'}, 'Digite o valor e toque na categoria'),
+    h('div', {'class': 'cats', id: 'cats', role: 'group', 'aria-label': 'Categoria (toque para lançar)'}),
+    teclado,
+    h('h2', {'class': 'titulo-sec'}, 'Lançados hoje'),
+    h('ul', {'class': 'lista', id: 'ultimos'}));
+}
+// a fileira de categorias do tipo escolhido; a sugerida (ou a escolhida) fica marcada
+function desenharCats(){
+  const box = document.getElementById('cats');
+  if(!box) return;
+  const marcada = DIG.cat || sugerirCat(DIG.tipo, DIG.desc);
+  box.textContent = '';
+  S.cats.filter(function(c){ return c.tipo === DIG.tipo; }).forEach(function(c){
+    box.appendChild(h('button', {type: 'button', 'class': 'cat', 'data-cat': c.id, 'aria-pressed': String(c.id === marcada),
+      onclick: function(){ tocarCat(c.id); }}, iconeCat(c), h('span', {'class': 'nome'}, c.nome)));
+  });
+}
+// uma linha de lançamento (Hoje, Mês e Histórico): ícone, descrição, categoria e valor à direita
+function itemLancamento(t, mostrarDia){
+  const c = catDe(t);
+  return h('button', {type: 'button', 'class': 'item', 'data-id': t.id, 'data-centavos': t.v, onclick: function(){ abrirEdicao(t.id); }},
+    iconeCat(c),
+    h('span', {'class': 'item-meio'}, h('b', null, t.desc || c.nome), h('small', null, t.desc ? c.nome : (mostrarDia ? diaLabel(t.d) : ''))),
+    h('span', {'class': 'item-valor num' + (t.v > 0 ? ' pos' : '')}, fmtSinal(t.v)));
+}
+
+/* ==================== foto da notinha ==================== */
+/* Como funciona: a foto é reduzida e acinzentada num canvas, um leitor de texto (Tesseract.js,
+   baixado SÓ quando você toca no botão) transforma a imagem em texto, e lerNotinha() acha o
+   valor, a data e a loja nesse texto. Nada é lançado sozinho: a tela fica preenchida e você
+   confere antes de tocar na categoria. A foto não é guardada (o armazenamento do navegador é
+   pequeno e uma foto o lotaria). */
+const TESSERACT_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+let tessCarregando = null, tessLeitor = null, tessAviso = null;
+
+/* Lê o texto de uma notinha e devolve {valor (centavos), data (aaaa-mm-dd), loja}; o que não
+   achar vem null. É uma função "pura" (só texto entra, só resultado sai) para dar para testar
+   sem câmera. Regras:
+   - valor: a linha com VALOR A PAGAR, TOTAL A PAGAR, VALOR TOTAL ou TOTAL (nessa ordem de
+     preferência; subtotal, troco e desconto não contam); sem nenhuma, o maior valor da nota
+     fora de troco e dinheiro recebido;
+   - data: a primeira dd/mm/aaaa ou dd/mm/aa válida;
+   - loja: a primeira linha de texto que não é CNPJ, CPF, endereço nem cabeçalho de cupom. */
+function lerNotinha(texto){
+  const linhas = String(texto || '').split(/\r?\n/).map(function(l){ return l.replace(/\s+/g, ' ').trim(); }).filter(Boolean);
+  const RE_VALOR = /(\d{1,3}(?:\.\d{3})+,\d{2}|\d+,\d{2}|\d+\.\d{2})(?!\d)/g;
+  const valores = function(l){
+    const out = []; let m;
+    RE_VALOR.lastIndex = 0;
+    while((m = RE_VALOR.exec(l))){ const v = parseMoney(m[1]); if(v > 0) out.push(v); }
+    return out;
+  };
+  const ignorar = /subtotal|sub total|desconto|troco|tribut|imposto|qtd|quantidade|itens|aprox/;
+  const prioridades = [/valor a pagar/, /total a pagar/, /valor total/, /\btotal\b/];
+  let valor = null;
+  for(let p = 0; p < prioridades.length && valor === null; p++){
+    for(let i = 0; i < linhas.length; i++){
+      const n = normal(linhas[i]);
+      if(!prioridades[p].test(n) || ignorar.test(n)) continue;
+      let v = valores(linhas[i]);
+      if(!v.length && linhas[i + 1]) v = valores(linhas[i + 1]);   // "TOTAL" numa linha e o valor na de baixo
+      if(v.length){ valor = v[v.length - 1]; break; }
+    }
+  }
+  if(valor === null){
+    linhas.forEach(function(l){
+      if(/troco|dinheiro|recebido|cnpj|cpf/.test(normal(l))) return;
+      valores(l).forEach(function(v){ if(valor === null || v > valor) valor = v; });
+    });
+  }
+  let data = null;
+  for(const l of linhas){
+    const m = l.match(/(\d{2})[\/.\-](\d{2})[\/.\-](\d{4}|\d{2})(?!\d)/);
+    if(m){ data = parseDateAny(m[1] + '/' + m[2] + '/' + m[3]); if(data) break; }
+  }
+  let loja = null;
+  const naoLoja = /cnpj|cpf|\bie\b|inscri|\brua\b|\br\.|\bav\b|\bav\.|avenida|rodovia|travessa|\bcep\b|bairro|\btel\b|fone|cupom|nota fiscal|nfc|danfe|extrato|documento|consumidor|\bdata\b|\bhora\b|caixa|operador|www|http|@/;
+  for(const l of linhas.slice(0, 8)){
+    const n = normal(l);
+    const letras = (l.match(/[a-zA-ZÀ-ÿ]/g) || []).length;
+    if(letras < 3 || letras / l.length < 0.55 || naoLoja.test(n) || /\d{2}[\/.]\d{2}/.test(l)) continue;
+    loja = l.replace(/\b(ltda|me|eireli|epp|s\.?\/?a\.?)\b\.?/ig, '').replace(/[^\wÀ-ÿ&' .\-]/g, '').replace(/\s+/g, ' ').trim();
+    // NOTA EM MAIÚSCULAS vira "Nota Em Maiúsculas": fica melhor como descrição
+    if(loja === loja.toUpperCase()) loja = loja.toLowerCase().replace(/(^|\s)\S/g, function(x){ return x.toUpperCase(); });
+    if(loja.length >= 3) break;
+    loja = null;
+  }
+  return {valor: valor, data: data, loja: loja};
+}
+// carrega o leitor do CDN só na primeira vez que alguém toca no botão (a página normal não baixa nada)
+function carregarTesseract(){
+  if(window.Tesseract) return Promise.resolve();
+  if(!tessCarregando) tessCarregando = new Promise(function(ok, falha){
+    const s = document.createElement('script');
+    s.src = TESSERACT_URL; s.async = true;
+    s.onload = ok;
+    s.onerror = function(){ tessCarregando = null; s.remove(); falha(new Error('sem rede')); };
+    document.head.appendChild(s);
+  });
+  return tessCarregando;
+}
+// o leitor é criado uma vez e reaproveitado; em português, e se o português falhar, português + inglês
+async function leitorOCR(){
+  if(tessLeitor) return tessLeitor;
+  const opcoes = {logger: function(m){ if(tessAviso) tessAviso(m); }};
+  try{ tessLeitor = await Tesseract.createWorker('por', 1, opcoes); }
+  catch(e){ tessLeitor = await Tesseract.createWorker(['por', 'eng'], 1, opcoes); }
+  return tessLeitor;
+}
+/* Antes de ler: lado maior com ~1600 px (foto de celular tem 4000 px e só deixaria tudo lento),
+   em tons de cinza e com o contraste esticado (o papel fica mais branco e a tinta mais preta). */
+async function prepararFoto(arquivo){
+  const img = await createImageBitmap(arquivo);
+  const esc = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * esc); c.height = Math.round(img.height * esc);
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0, c.width, c.height);
+  const px = g.getImageData(0, 0, c.width, c.height), d = px.data, hist = new Array(256).fill(0), n = d.length / 4;
+  for(let i = 0; i < d.length; i += 4){
+    const y = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+    d[i] = y; hist[y]++;
+  }
+  // os 2% mais escuros viram preto e os 2% mais claros viram branco; o resto se espalha no meio
+  let soma = 0, lo = 0, hi = 255;
+  for(let v = 0; v < 256; v++){ soma += hist[v]; if(soma > n * 0.02){ lo = v; break; } }
+  soma = 0;
+  for(let v = 255; v >= 0; v--){ soma += hist[v]; if(soma > n * 0.02){ hi = v; break; } }
+  const faixa = Math.max(1, hi - lo);
+  for(let i = 0; i < d.length; i += 4){
+    const y = Math.max(0, Math.min(255, Math.round((d[i] - lo) * 255 / faixa)));
+    d[i] = d[i + 1] = d[i + 2] = y;
+  }
+  g.putImageData(px, 0, 0);
+  return c;
+}
+async function lerFotoNotinha(arquivo){
+  DIG.nota = {estado: 'lendo', pct: 0, msg: 'Preparando...'};
+  desenharNotinha();
+  tessAviso = function(m){
+    if(m.status === 'recognizing text') DIG.nota = {estado: 'lendo', pct: Math.round(m.progress * 100), msg: 'Lendo a nota...'};
+    else if(/load|initializ/.test(m.status || '')) DIG.nota = {estado: 'lendo', pct: 0, msg: 'Preparando...'};
+    desenharNotinha();
+  };
+  try{
+    const [foto] = await Promise.all([prepararFoto(arquivo), carregarTesseract()]);
+    const leitor = await leitorOCR();
+    const r = await leitor.recognize(foto);
+    aplicarLeitura(lerNotinha(r.data.text));
+  }catch(e){
+    DIG.nota = {estado: 'erro', msg: 'Não deu para ler a nota agora. Digite o valor.'};
+    desenharNotinha();
+  }finally{ tessAviso = null; }
+}
+/* Põe o que foi lido na tela, sem lançar: valor no visor, loja na descrição, data se não for
+   hoje. A categoria sugerida sai da loja (as mesmas palavras do importador). */
+function aplicarLeitura(r){
+  if(r.valor) DIG.txt = Math.floor(r.valor / 100) + ',' + pad2(r.valor % 100);
+  DIG.tipo = 'g'; DIG.cat = null;
+  if(r.loja) DIG.desc = r.loja;
+  DIG.data = r.data && r.data !== hojeISO() ? r.data : null;
+  DIG.det = !!(r.loja || DIG.data);
+  DIG.nota = r.valor ? {estado: 'lido', r: r} : {estado: 'erro', msg: 'Não achei o valor na foto. Digite no teclado.'};
+  if(telaAtual !== 'hoje') irPara('hoje'); else renderHoje();
+}
+function desenharNotinha(){
+  const box = document.getElementById('notinha-faixa');
+  if(!box) return;
+  const n = DIG.nota;
+  box.hidden = !n;
+  box.textContent = '';
+  if(!n) return;
+  const fechar = h('button', {'class': 'redondo', type: 'button', 'aria-label': 'Fechar', onclick: function(){ DIG.nota = null; desenharNotinha(); }}, icone('fechar', 20));
+  if(n.estado === 'lendo'){
+    box.append(h('p', null, n.msg + (n.pct ? ' ' + n.pct + '%' : ''), h('span', {'class': 'barrinha'}, h('span', {style: 'width:' + (n.pct || 4) + '%'}))));
+  } else if(n.estado === 'lido'){
+    // o aviso de que a leitura pode errar fica atrás do "?": quem já sabe não precisa ler toda vez
+    const ajuda = h('button', {'class': 'redondo', type: 'button', id: 'notinha-ajuda', 'aria-label': 'Como funciona a leitura', 'aria-expanded': String(!!n.ajuda),
+      onclick: function(){ n.ajuda = !n.ajuda; desenharNotinha(); }}, icone('ajuda', 20));
+    box.append(h('p', {id: 'notinha-lida'}, 'Confira os dados da nota',
+      n.ajuda ? h('small', null, 'A leitura é automática e pode errar em nota amassada ou escura.') : null), ajuda, fechar);
+  } else box.append(h('p', null, n.msg), fechar);
+}
+
+/* ==================== editar ou apagar um lançamento (folha que sobe) ==================== */
+function abrirEdicao(id){
+  const t = S.tx.find(function(x){ return x.id === id; });
+  if(!t) return;
+  let tipo = t.v > 0 ? 'e' : 'g', cat = t.cat;
+  const valor = h('input', {'class': 'entrada-txt num', id: 'ed-valor', type: 'text', inputmode: 'decimal', value: fmtCampo(Math.abs(t.v))});
+  const data = h('input', {'class': 'entrada-txt', id: 'ed-data', type: 'date', value: t.d});
+  const desc = h('input', {'class': 'entrada-txt', id: 'ed-desc', type: 'text', maxlength: '80', value: t.desc || '', placeholder: 'Descrição'});
+  const seg = h('div', {'class': 'segmento', role: 'group', 'aria-label': 'Gasto ou entrada'});
+  const grade = h('div', {'class': 'grade-cats', id: 'ed-cats'});
+  const desenhar = function(){
+    seg.textContent = '';
+    [['g', 'Gasto'], ['e', 'Entrada']].forEach(function(x){
+      seg.appendChild(h('button', {type: 'button', 'aria-pressed': String(tipo === x[0]), onclick: function(){
+        if(tipo !== x[0]){ tipo = x[0]; cat = sugerirCat(tipo, desc.value); desenhar(); } }}, x[1]));
+    });
+    grade.textContent = '';
+    S.cats.filter(function(c){ return c.tipo === tipo; }).forEach(function(c){
+      grade.appendChild(h('button', {type: 'button', 'class': 'cat', 'data-cat': c.id, 'aria-pressed': String(c.id === cat),
+        onclick: function(){ cat = c.id; desenhar(); }}, iconeCat(c), h('span', {'class': 'nome'}, c.nome)));
+    });
+  };
+  desenhar();
+  const salvar = function(){
+    const v = Math.abs(parseMoney(valor.value) || 0);
+    if(!v){ valor.focus(); return; }
+    fecharFolha();
+    comDesfazer('Lançamento alterado', function(){
+      Object.assign(t, {v: tipo === 'e' ? v : -v, cat: cat, d: data.value || t.d, desc: desc.value.trim()});
+    });
+  };
+  const apagar = function(){
+    fecharFolha();
+    comDesfazer('Lançamento apagado', function(){ S.tx = S.tx.filter(function(x){ return x.id !== id; }); });
+  };
+  abrirFolha('Editar lançamento', [
+    h('div', {'class': 'campos'}, h('label', {'class': 'campo'}, 'Valor', valor), h('label', {'class': 'campo'}, 'Data', data),
+      h('label', {'class': 'campo largo'}, 'Descrição', desc)),
+    h('div', {style: 'margin-top:12px'}, seg), grade,
+    h('div', {'class': 'acoes'}, h('button', {'class': 'botao perigo', type: 'button', id: 'ed-apagar', onclick: apagar}, 'Apagar'),
+      h('button', {'class': 'botao primario', type: 'button', id: 'ed-salvar', onclick: salvar}, 'Salvar'))]);
+}
+
+/* A folha: o <dialog> do próprio navegador (Esc fecha, o foco fica dentro, o fundo escurece). */
+function abrirFolha(titulo, corpo, semFechar){
+  const dlg = document.getElementById('folha');
+  dlg.textContent = '';
+  // sem título (boas-vindas): o próprio conteúdo traz o seu h2 com id folha-titulo
+  dlg.appendChild(h('div', {'class': 'folha-dentro'}, h('div', {'class': 'folha-pega', 'aria-hidden': 'true'}),
+    titulo ? h('div', {'class': 'folha-cab'}, h('h2', {id: 'folha-titulo'}, titulo),
+      semFechar ? null : h('button', {'class': 'redondo', type: 'button', 'aria-label': 'Fechar', onclick: fecharFolha}, icone('fechar', 20))) : null,
+    corpo));
+  if(!dlg.open) dlg.showModal();
+}
+function fecharFolha(){ const d = document.getElementById('folha'); if(d.open) d.close(); }
+
+/* ==================== lista agrupada por dia (Mês e Histórico) ==================== */
+/* Um grupo por dia, do mais recente para o mais antigo, com o total do dia no cabeçalho.
+   limite = quantos lançamentos desenhar (o Histórico desenha em blocos para não travar). */
+function listaPorDia(box, lista, limite){
+  const porDia = {};
+  lista.forEach(function(t){ (porDia[t.d] = porDia[t.d] || []).push(t); });
+  let desenhados = 0;
+  Object.keys(porDia).sort().reverse().some(function(d){
+    if(limite && desenhados >= limite) return true;
+    const itens = porDia[d], tot = itens.reduce(function(a, t){ return a + t.v; }, 0);
+    const mostrar = itens.slice().reverse().slice(0, limite ? limite - desenhados : undefined);
+    desenhados += mostrar.length;
+    box.appendChild(h('div', {'class': 'dia', 'data-dia': d, 'data-centavos': tot},
+      h('p', {'class': 'dia-cab'}, h('span', null, cap(diaLabel(d))), h('span', {'class': 'num' + (tot > 0 ? ' pos' : '')}, fmtSinal(tot))),
+      h('ul', {'class': 'lista'}, mostrar.map(function(t){ return h('li', null, itemLancamento(t)); }))));
+    return false;
+  });
+  return desenhados;
+}
+
+/* ==================== tela Mês ==================== */
+let mesVer = null;   // mês mostrado (começa no atual; as setas andam pelos meses)
+// três números lado a lado, separados por uma divisória fina (sem caixa em volta de cada um)
+function resumo3(itens){
+  return h('div', {'class': 'resumo'}, itens.map(function(x){
+    return h('div', null, h('small', null, x[1]), h('b', {'class': 'num ' + (x[3] || ''), 'data-kpi': x[0], 'data-centavos': x[2]}, fmtDinheiro(x[2])));
+  }));
+}
+function renderMes(){
+  const sec = document.getElementById('tela-mes');
+  sec.textContent = '';
+  const ym = mesVer || mesAtual(), r = resumoMes(ym), lista = txMes(ym);
+  sec.append(
+    h('div', {'class': 'mes-cab'},
+      h('button', {'class': 'redondo', type: 'button', id: 'mes-ant', 'aria-label': 'Mês anterior', onclick: function(){ mesVer = addMeses(ym, -1); renderMes(); }}, icone('esq')),
+      h('h1', {id: 'mes-titulo', 'data-ym': ym}, mesLabel(ym)),
+      h('button', {'class': 'redondo', type: 'button', id: 'mes-prox', 'aria-label': 'Próximo mês', disabled: ym >= mesAtual() ? 'disabled' : null,
+        onclick: function(){ mesVer = addMeses(ym, 1); renderMes(); }}, icone('dir'))),
+    resumo3([['entrou', 'Entrou', r.entrou, 'pos'], ['saiu', 'Saiu', r.saiu], ['sobra', 'Saldo', r.sobra, r.sobra < 0 ? 'ruim' : '']]),
+    /* Por que esta linha: o "Sobram" da tela Hoje é outra conta (parte da renda inteira e já tira
+       todas as contas fixas, pagas ou não). Sem explicar, os dois números parecem brigar. */
+    ym === mesAtual() ? h('p', {'class': 'nota-saldo'}, 'Saldo é o que entrou menos o que saiu. O "Sobram" do Hoje também desconta as contas fixas a vencer.') : null,
+    h('h2', {'class': 'titulo-sec'}, 'Por categoria'),
+    blocoCategorias(ym));
+  sec.appendChild(h('h2', {'class': 'titulo-sec'}, 'Dia a dia'));
+  if(!lista.length){ sec.appendChild(vazio('Nada lançado neste mês')); return; }
+  listaPorDia(sec, lista);
+}
+/* Gasto por categoria: uma linha por categoria com uma barra fina embaixo. Todas na mesma régua
+   (a maior entre gasto e limite), para comparar de olho; o limite é um tracinho e a barra fica
+   coral quando passa. As contas fixas ficam numa linha sem barra: são o maior valor e
+   espremeriam o resto. */
+function blocoCategorias(ym, curto){
+  const g = gastoPorCat(ym);
+  const ids = Object.keys(g).filter(function(id){ return id !== 'fixas'; }).sort(function(a, b){ return g[b] - g[a]; });
+  const box = h('div', {id: curto ? null : 'mes-cats'});
+  if(g.fixas) box.appendChild(h('div', {'class': 'conta-fixa', 'data-cat': 'fixas', 'data-centavos': g.fixas},
+    h('span', null, iconeCat(catPorId('fixas')), catPorId('fixas').nome), h('span', {'class': 'num'}, fmtDinheiro(g.fixas))));
+  if(!ids.length){ if(!g.fixas) box.appendChild(vazio('Nenhum gasto neste mês')); return box; }
+  const lista = curto ? ids.slice(0, 5) : ids;
+  const regua = Math.max.apply(null, lista.map(function(id){ const c = catPorId(id); return Math.max(g[id], (c && c.limite) || 0); }));
+  lista.forEach(function(id){
+    const c = catPorId(id) || {id: id, nome: id, limite: 0};
+    const passou = c.limite > 0 && g[id] > c.limite;
+    box.appendChild(h('div', {'class': 'barra-cat' + (passou ? ' passou' : ''), 'data-cat': id, 'data-centavos': g[id]},
+      h('div', {'class': 'linha'}, h('span', null, iconeCat(c), c.nome),
+        h('span', {'class': 'num'}, fmtDinheiro(g[id]) + (c.limite > 0 && !curto ? ' de ' + fmtDinheiro(c.limite) : ''))),   // no painel estreito, o limite fica só no tracinho
+      h('div', {'class': 'trilho'}, h('div', {'class': 'cheio', style: 'width:' + (g[id] / regua * 100).toFixed(1) + '%'}),
+        c.limite > 0 ? h('div', {'class': 'marca', style: 'left:calc(' + (c.limite / regua * 100).toFixed(1) + '% - 1px)'}) : null)));
+  });
+  return box;
+}
+
+/* ==================== tela Histórico ==================== */
+/* Todos os lançamentos, com filtro de período, busca, tipo e categoria (tudo em chips, sem as
+   listas do navegador). O filtro ativo fica escrito com "Limpar". A lista é desenhada em blocos
+   de 80 ("Mostrar mais"), para um histórico de anos não travar o celular. */
+const HIST_PADRAO = {periodo: 'tudo', de: '', ate: '', q: '', tipo: 'todos', cat: 'todas'};
+const HIST = Object.assign({mostrar: 80}, HIST_PADRAO);
+const PERIODOS = [['tudo', 'Tudo'], ['7d', '7 dias'], ['30d', '30 dias'], ['mes', 'Este mês'], ['passado', 'Mês passado'], ['ano', 'Este ano'], ['pers', 'Escolher datas']];
+const TIPOS_H = [['todos', 'Todos'], ['g', 'Gastos'], ['e', 'Entradas']];
+function diasAtras(n){ const d = new Date(); d.setDate(d.getDate() - n); return isoDe(d); }
+// o intervalo [de, até] de cada atalho, em datas "aaaa-mm-dd" (vazio = sem limite)
+function intervalo(){
+  const hoje = hojeISO(), ym = mesAtual();
+  switch(HIST.periodo){
+    case '7d': return [diasAtras(6), hoje];
+    case '30d': return [diasAtras(29), hoje];
+    case 'mes': return [ym + '-01', ym + '-' + pad2(diasNoMes(ym))];
+    case 'passado': { const p = addMeses(ym, -1); return [p + '-01', p + '-' + pad2(diasNoMes(p))]; }
+    case 'ano': return [ym.slice(0, 4) + '-01-01', ym.slice(0, 4) + '-12-31'];
+    case 'pers': return [HIST.de, HIST.ate];
+    default: return ['', ''];
+  }
+}
+function filtrarHist(){
+  const iv = intervalo(), q = normal(HIST.q);
+  return S.tx.filter(function(t){
+    if(iv[0] && t.d < iv[0]) return false;
+    if(iv[1] && t.d > iv[1]) return false;
+    if(HIST.tipo === 'g' && t.v > 0) return false;
+    if(HIST.tipo === 'e' && t.v < 0) return false;
+    if(HIST.cat !== 'todas' && catDe(t).id !== HIST.cat) return false;
+    if(q && normal(t.desc).indexOf(q) < 0 && normal(catDe(t).nome).indexOf(q) < 0) return false;
+    return true;
+  });
+}
+function histAtivo(){ return Object.keys(HIST_PADRAO).some(function(k){ return HIST[k] !== HIST_PADRAO[k]; }); }
+// a parte de cima é montada uma vez: digitar na busca não perde o foco
+function montarHist(sec){
+  const chipsDe = function(id, lista, chave, rotulo){
+    return h('div', {'class': 'chips', id: id, role: 'group', 'aria-label': rotulo}, lista.map(function(p){
+      return h('button', {type: 'button', 'class': 'chip', 'data-v': p[0], onclick: function(){ HIST[chave] = p[0]; HIST.mostrar = 80; atualizarHist(); }}, p[1]);
+    }));
+  };
+  const data = function(chave, rotulo){
+    const i = h('input', {'class': 'entrada-txt', type: 'date', id: 'hist-' + chave, onchange: function(){ HIST[chave] = i.value; HIST.mostrar = 80; atualizarHist(); }});
+    return h('label', {'class': 'campo'}, rotulo, i);
+  };
+  const busca = h('input', {'class': 'entrada-txt', type: 'search', id: 'hist-q', placeholder: 'Buscar', 'aria-label': 'Buscar',
+    oninput: function(){ HIST.q = busca.value; HIST.mostrar = 80; atualizarHist(); }});
+  sec.append(h('h1', {'class': 'titulo-tela'}, 'Histórico'),
+    h('div', {'class': 'busca'}, icone('busca', 20), busca),
+    chipsDe('hist-periodos', PERIODOS, 'periodo', 'Período'),
+    h('div', {'class': 'campos', id: 'hist-pers', hidden: 'hidden'}, data('de', 'De'), data('ate', 'Até')),
+    // tipo é um segmento neutro (e não chips rosé): três fileiras de chips coloridos pesariam a tela
+    h('div', {'class': 'segmento', id: 'hist-tipos', role: 'group', 'aria-label': 'Tipo', style: 'margin-top:16px'}, TIPOS_H.map(function(p){
+      return h('button', {type: 'button', 'data-v': p[0], onclick: function(){ HIST.tipo = p[0]; HIST.mostrar = 80; atualizarHist(); }}, p[1]);
+    })),
+    h('div', {'class': 'chips', id: 'hist-cats', role: 'group', 'aria-label': 'Categoria'}),
+    h('div', {'class': 'filtro-ativo', id: 'hist-ativo', hidden: 'hidden'}, h('span', {id: 'hist-ativo-txt'}),
+      h('button', {'class': 'link', type: 'button', id: 'hist-limpar', onclick: function(){ Object.assign(HIST, HIST_PADRAO, {mostrar: 80}); atualizarHist(); }}, 'Limpar')),
+    h('div', {id: 'hist-resultado'}));
+}
+function renderHist(){
+  const sec = document.getElementById('tela-hist');
+  if(!sec.firstChild) montarHist(sec);
+  atualizarHist();
+}
+function atualizarHist(){
+  if(!catPorId(HIST.cat)) HIST.cat = 'todas';
+  // chips de categoria: saem das categorias de agora (você pode ter criado uma nova)
+  const cats = document.getElementById('hist-cats');
+  cats.textContent = '';
+  cats.appendChild(h('button', {type: 'button', 'class': 'chip', 'data-v': 'todas', onclick: function(){ HIST.cat = 'todas'; atualizarHist(); }}, 'Todas'));
+  S.cats.forEach(function(c){
+    cats.appendChild(h('button', {type: 'button', 'class': 'chip', 'data-v': c.id, onclick: function(){ HIST.cat = c.id; HIST.mostrar = 80; atualizarHist(); }},
+      icone(c.icone || 'etiqueta', 18), c.nome));
+  });
+  [['hist-periodos', 'periodo'], ['hist-tipos', 'tipo'], ['hist-cats', 'cat']].forEach(function(x){
+    document.querySelectorAll('#' + x[0] + ' button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.v === HIST[x[1]])); });
+  });
+  document.getElementById('hist-pers').hidden = HIST.periodo !== 'pers';
+  document.getElementById('hist-de').value = HIST.de; document.getElementById('hist-ate').value = HIST.ate;
+  if(document.getElementById('hist-q').value !== HIST.q) document.getElementById('hist-q').value = HIST.q;
+  // o filtro ativo, escrito por extenso: "30 dias · Gastos · Mercado · uber"
+  const partes = [];
+  if(HIST.periodo === 'pers') partes.push((HIST.de ? 'de ' + HIST.de.split('-').reverse().join('/') : '') + (HIST.ate ? ' até ' + HIST.ate.split('-').reverse().join('/') : '') || 'Datas');
+  else if(HIST.periodo !== 'tudo') partes.push(PERIODOS.find(function(p){ return p[0] === HIST.periodo; })[1]);
+  if(HIST.tipo !== 'todos') partes.push(HIST.tipo === 'g' ? 'Gastos' : 'Entradas');
+  if(HIST.cat !== 'todas') partes.push(catPorId(HIST.cat).nome);
+  if(HIST.q) partes.push('"' + HIST.q + '"');
+  document.getElementById('hist-ativo').hidden = !histAtivo();
+  document.getElementById('hist-ativo-txt').textContent = partes.join(' · ');
+  // o resultado: entrou, saiu, saldo e quantos itens, depois a lista por dia em blocos
+  const lista = filtrarHist(), box = document.getElementById('hist-resultado');
+  let entrou = 0, saiu = 0;
+  lista.forEach(function(t){ if(t.v > 0) entrou += t.v; else saiu -= t.v; });
+  box.textContent = '';
+  box.append(resumo3([['h-entrou', 'Entrou', entrou, 'pos'], ['h-saiu', 'Saiu', saiu], ['h-saldo', 'Saldo', entrou - saiu, entrou - saiu < 0 ? 'ruim' : '']]),
+    h('p', {'class': 'nota-saldo', id: 'hist-n', 'data-n': lista.length}, plural(lista.length, 'lançamento', 'lançamentos')));
+  if(!lista.length){ box.appendChild(vazio('Nada encontrado')); return; }
+  const desenhados = listaPorDia(box, lista, HIST.mostrar);
+  if(desenhados < lista.length) box.appendChild(h('div', {'class': 'acoes'}, h('button', {'class': 'botao cheio', type: 'button', id: 'hist-mais',
+    onclick: function(){ HIST.mostrar += 80; atualizarHist(); }}, 'Mostrar mais (' + (lista.length - desenhados) + ')')));
+}
+
+/* ==================== tela Calculadoras ==================== */
+let calcAba = 'comum';
+function renderCalc(){
+  const sec = document.getElementById('tela-calc');
+  sec.textContent = '';
+  const seg = h('div', {'class': 'segmento', role: 'group', 'aria-label': 'Qual calculadora'});
+  [['comum', 'Calculadora'], ['parcelas', 'Parcelas']].forEach(function(x){
+    seg.appendChild(h('button', {type: 'button', id: 'calc-aba-' + x[0], 'aria-pressed': String(calcAba === x[0]),
+      onclick: function(){ calcAba = x[0]; renderCalc(); }}, x[1]));
+  });
+  sec.append(h('h1', {'class': 'titulo-tela'}, 'Calculadoras'), seg, calcAba === 'comum' ? calculadora() : parcelas());
+}
+
+/* Calculadora de bolso: faz a conta na ordem em que se digita (12 + 3 × 2 = 30), como as de mesa.
+   Estado: acc = conta até aqui, op = operação esperando o próximo número, entrada = o visor,
+   novo = o próximo dígito começa um número novo. */
+const CALC = {acc: null, op: null, entrada: '0', novo: true};
+function calcNum(s){ return parseFloat(String(s).replace(/\./g, '').replace(',', '.')) || 0; }
+function calcFmt(x){ return parseFloat(x.toPrecision(12)).toLocaleString('pt-BR', {maximumFractionDigits: 10}); }
+function calcConta(a, op, b){ return op === '+' ? a + b : op === '−' ? a - b : op === '×' ? a * b : a / b; }
+function calcTecla(k){
+  const c = CALC;
+  if(/^[0-9,]$/.test(k)){
+    if(c.novo){ c.entrada = k === ',' ? '0,' : k; c.novo = false; }
+    else if(!(k === ',' && c.entrada.indexOf(',') >= 0) && c.entrada.length < 16) c.entrada = c.entrada === '0' && k !== ',' ? k : c.entrada + k;
+  } else if('+−×÷'.indexOf(k) >= 0){
+    if(c.op && !c.novo){ c.acc = calcConta(c.acc, c.op, calcNum(c.entrada)); c.entrada = calcFmt(c.acc); }
+    else if(!c.op) c.acc = calcNum(c.entrada);
+    c.op = k; c.novo = true;                 // operação apertada duas vezes: vale a última
+  } else if(k === '=' && c.op){
+    c.entrada = calcFmt(calcConta(c.acc, c.op, calcNum(c.entrada)));
+    c.acc = null; c.op = null; c.novo = true;
+  } else if(k === '%'){                      // 200 + 10 % = 220, como na calculadora de mesa
+    const x = calcNum(c.entrada);
+    c.entrada = calcFmt(c.op === '+' || c.op === '−' ? c.acc * x / 100 : x / 100); c.novo = true;
+  } else if(k === '±') c.entrada = c.entrada.charAt(0) === '-' ? c.entrada.slice(1) : c.entrada === '0' ? '0' : '-' + c.entrada;
+  else if(k === '⌫'){ if(!c.novo) c.entrada = c.entrada.slice(0, -1).replace(/^-?$/, '0'); }
+  else if(k === 'C'){ c.acc = null; c.op = null; c.entrada = '0'; c.novo = true; }
+  if(/NaN|∞/.test(c.entrada)){ c.acc = null; c.op = null; c.entrada = 'Não dá para dividir por zero'; c.novo = true; }
+}
+function calcMostra(){
+  const v = document.getElementById('calc-visor'), conta = document.getElementById('calc-conta');
+  if(v) v.textContent = CALC.entrada;
+  if(conta) conta.textContent = CALC.op ? calcFmt(CALC.acc) + ' ' + CALC.op : '';
+}
+function calculadora(){
+  const teclas = ['C', '⌫', '%', '÷', '7', '8', '9', '×', '4', '5', '6', '−', '1', '2', '3', '+', '±', '0', ',', '='];
+  const nomes = {'C': 'Limpar', '⌫': 'Apagar', '%': 'Por cento', '÷': 'Dividir', '×': 'Multiplicar', '−': 'Menos', '+': 'Mais',
+    '±': 'Trocar o sinal', ',': 'Vírgula', '=': 'Igual'};
+  return h('div', null,
+    h('div', {'class': 'calc-visor'}, h('p', {'class': 'calc-conta', id: 'calc-conta'}, CALC.op ? calcFmt(CALC.acc) + ' ' + CALC.op : ''),
+      h('p', {'class': 'calc-num num', id: 'calc-visor', 'aria-live': 'polite'}, CALC.entrada)),
+    h('div', {'class': 'teclas'}, teclas.map(function(k){
+      return h('button', {type: 'button', 'data-tecla': k, 'aria-label': nomes[k] || k,
+        'class': 'tecla' + ('+−×÷'.indexOf(k) >= 0 ? ' op' : k === '=' ? ' igual' : ''),
+        onclick: function(){ calcTecla(k); calcMostra(); }}, k === '⌫' ? icone('apagar', 22) : k);
+    })));
+}
+
+/* Parcelas: quanto fica cada parcela, quanto custa a mais e se compensa pagar à vista.
+   Com juros, a parcela é a da tabela Price (a do crediário): preço × juros ÷ (1 − (1 + juros)^−n).
+   Se o seu dinheiro rende enquanto você paga, cada parcela futura vale menos hoje: as parcelas
+   são trazidas para o valor de hoje antes de comparar com o preço à vista (primeira em 30 dias). */
+function contaParcelas(preco, n, jurosPct, descPct, rendPct){
+  const i = jurosPct / 100, r = rendPct / 100;
+  const parcela = i > 0 ? Math.round(preco * i / (1 - Math.pow(1 + i, -n))) : Math.round(preco / n);
+  const total = i > 0 ? parcela * n : preco;
+  const avista = Math.round(preco * (1 - descPct / 100));
+  const valorHoje = r > 0 ? Math.round(parcela * (1 - Math.pow(1 + r, -n)) / r) : total;
+  return {parcela: parcela, total: total, aMais: total - preco, avista: avista, valorHoje: valorHoje, diferenca: valorHoje - avista};
+}
+function fraseParcelas(p, n, rendPct){
+  const dif = Math.abs(p.diferenca);
+  if(dif < 100) return rendPct > 0 ? 'Tanto faz: a diferença é de centavos.'
+    : 'Empate: à vista e parcelado custam o mesmo. Se o seu dinheiro rende enquanto você paga, parcelar sai melhor; informe o rendimento para ver quanto.';
+  if(p.diferenca > 0) return 'À vista é melhor: você paga ' + fmtDinheiro(p.avista) + ', ' + fmtDinheiro(dif) + ' a menos que parcelando' +
+    (rendPct > 0 ? ', mesmo contando o rendimento do dinheiro.' : '.');
+  return 'Parcelar é melhor: com o dinheiro rendendo enquanto você paga, as ' + n + ' parcelas valem hoje ' + fmtDinheiro(p.valorHoje) +
+    ', ' + fmtDinheiro(dif) + ' a menos que pagar à vista.';
+}
+function lerPct(s){ const x = parseFloat(String(s).replace(',', '.')); return isFinite(x) && x > 0 ? x : 0; }
+function fmtPct(x){ return x.toLocaleString('pt-BR', {maximumFractionDigits: 2}) + '%'; }
+const PARC = {preco: '1.000,00', n: '10', juros: '0', desc: '5', rend: '0', ver: false, nome: ''};   // guardado para não zerar ao trocar de tela
+function parcelas(){
+  const campo = function(k, rotulo, largo, extra){
+    const i = h('input', Object.assign({'class': 'entrada-txt num', id: 'parc-' + k, type: 'text', inputmode: 'decimal', value: PARC[k]}, extra || {}));
+    i.addEventListener('input', function(){ PARC[k] = i.value; atualizar(); });
+    return h('label', {'class': 'campo' + (largo ? ' largo' : '')}, rotulo, i);
+  };
+  const saida = h('div');
+  const linha = function(rotulo, cent, id, classe){
+    return h('div', {'class': 'linha-conta ' + (classe || '')}, h('span', null, rotulo), h('span', {'class': 'num', id: id, 'data-centavos': cent}, fmtDinheiro(cent)));
+  };
+  function atualizar(){
+    const preco = Math.abs(parseMoney(PARC.preco) || 0), n = Math.max(1, Math.min(120, Math.round(calcNum(PARC.n)) || 1));
+    const juros = lerPct(PARC.juros), desc = Math.min(100, lerPct(PARC.desc)), rend = lerPct(PARC.rend);
+    saida.textContent = '';
+    if(!preco){ saida.appendChild(h('p', {'class': 'nota-saldo'}, 'Informe o preço.')); return; }
+    const p = contaParcelas(preco, n, juros, desc, rend);
+    saida.appendChild(h('div', {'class': 'linhas'},
+      linha('Parcela: ' + n + 'x ' + (juros > 0 ? 'com ' + fmtPct(juros) + ' ao mês' : 'sem juros'), p.parcela, 'parc-parcela'),
+      linha('Total parcelado', p.total, 'parc-total'),
+      linha('Custa a mais', p.aMais, 'parc-amais'),
+      linha('À vista' + (desc > 0 ? ' com ' + fmtPct(desc) + ' de desconto' : ''), p.avista, 'parc-avista', 'total')));
+    saida.appendChild(h('p', {'class': 'frase', id: 'parc-frase'}, fraseParcelas(p, n, rend)));
+    saida.appendChild(h('div', {'class': 'acoes'}, h('button', {'class': 'botao cheio', type: 'button', id: 'parc-ver', 'aria-expanded': String(PARC.ver),
+      onclick: function(){ PARC.ver = !PARC.ver; atualizar(); }}, PARC.ver ? 'Esconder minhas parcelas' : 'Ver com as minhas parcelas')));
+    if(PARC.ver) saida.appendChild(graficoParcelas(p, n, atualizar));
+  }
+  atualizar();
+  return h('div', null,
+    h('div', {'class': 'campos'}, campo('preco', 'Preço (R$)'), campo('n', 'Parcelas', false, {inputmode: 'numeric'}),
+      campo('juros', 'Juros ao mês (%)'), campo('desc', 'Desconto à vista (%)'),
+      campo('rend', 'Rendimento do seu dinheiro ao mês (%)', true)),
+    saida);
+}
+
+/* ==================== tela Ajustes ==================== */
+/* Seções em sequência, separadas por uma linha fina (sem um cartão para cada uma). */
+function renderAjustes(){
+  const sec = document.getElementById('tela-ajustes');
+  sec.textContent = '';
+  sec.append(logotipo(28), h('h1', {'class': 'titulo-tela', style: 'margin-top:16px'}, 'Ajustes'), secRenda(), secFixas(), secParcelas(), secCats(), secDados(), secTema(),
+    h('p', {'class': 'rodape-nota'}, 'Seus dados ficam só neste navegador.'));
+}
+function secao(titulo, sub, corpo, id){
+  return h('section', {'class': 'ajuste', id: id || null}, h('h2', null, titulo), sub ? h('p', {'class': 'sub'}, sub) : null, corpo);
+}
+// campo de dinheiro que grava ao sair do campo (change), para não redesenhar enquanto se digita
+function campoDinheiro(id, cent, aoMudar, rotulo){
+  const i = h('input', {'class': 'entrada-txt num valor', id: id, type: 'text', inputmode: 'decimal', value: fmtCampo(cent), placeholder: '0,00', 'aria-label': rotulo});
+  i.addEventListener('change', function(){ const v = Math.abs(parseMoney(i.value) || 0); i.value = fmtCampo(v); aoMudar(v); });
+  return i;
+}
+function secRenda(){
+  const i = campoDinheiro('aj-renda', S.config.renda, function(v){ S.config.renda = v; save(); renderLateral(); }, 'Renda do mês');
+  i.style.width = '100%';
+  return secao('Renda do mês', 'Quanto cai na conta por mês, já líquido. Entradas fora de Salário somam a ela.', h('div', {'class': 'linha-edit'}, i));
+}
+// Minhas parcelas: uma linha por parcela; tocar abre para mudar ou tirar
+function secParcelas(){
+  const lista = h('ul', {'class': 'lista', id: 'aj-parcelas'});
+  S.parcelas.forEach(function(p){
+    lista.appendChild(h('li', null, h('button', {type: 'button', 'class': 'item', 'data-parcela': p.id, onclick: function(){ editarParcela(p); }},
+      h('span', {'class': 'ic-cat', 'aria-hidden': 'true'}, icone('recibo', 20)),
+      h('span', {'class': 'item-meio'}, h('b', null, p.nome), h('small', null, descParcela(p))),
+      h('span', {'class': 'item-valor num'}, fmtDinheiro(p.v)))));
+  });
+  if(!S.parcelas.length) lista.appendChild(h('li', null, h('p', {'class': 'sub', style: 'padding:8px 0'}, 'Nenhuma parcela.')));
+  return secao('Minhas parcelas', 'Entram nas contas de cada mês até a última.', [lista,
+    h('p', {'class': 'total-fixas'}, h('span', null, 'Neste mês'), h('span', {'class': 'num', id: 'aj-total-parcelas'}, fmtDinheiro(parcelasDoMes(mesAtual())))),
+    h('div', {'class': 'acoes'}, h('button', {'class': 'botao', type: 'button', id: 'aj-add-parcela', onclick: function(){ editarParcela(null); }}, 'Adicionar parcela'))], 'aj-parcelas-sec');
+}
+// folha para criar ou mudar uma parcela: nome, valor, quantas no total e quantas faltam
+function editarParcela(p){
+  const f0 = p ? faltam(p) : '';
+  const nome = h('input', {'class': 'entrada-txt', id: 'pe-nome', type: 'text', value: p ? p.nome : '', placeholder: 'Ex.: Geladeira'});
+  const valor = h('input', {'class': 'entrada-txt num', id: 'pe-valor', type: 'text', inputmode: 'decimal', value: p ? fmtCampo(p.v) : '', placeholder: '0,00'});
+  const total = h('input', {'class': 'entrada-txt num', id: 'pe-total', type: 'text', inputmode: 'numeric', value: p ? String(p.n) : ''});
+  const falt = h('input', {'class': 'entrada-txt num', id: 'pe-faltam', type: 'text', inputmode: 'numeric', value: String(f0)});
+  const salvar = function(){
+    const v = Math.abs(parseMoney(valor.value) || 0), f = Math.max(0, Math.round(calcNum(falt.value)));
+    const n = Math.max(f, 1, Math.round(calcNum(total.value)) || f);
+    if(!v){ valor.focus(); return; }
+    fecharFolha();
+    comDesfazer(p ? 'Parcela alterada' : 'Parcela adicionada', function(){
+      const novo = {nome: nome.value.trim() || 'Parcela', v: v, n: n, inicio: inicioDe(n, f)};
+      if(p) Object.assign(p, novo); else S.parcelas.push(Object.assign({id: uid()}, novo));
+    });
+  };
+  abrirFolha(p ? 'Parcela' : 'Nova parcela', [
+    h('div', {'class': 'campos'}, h('label', {'class': 'campo largo'}, 'Nome', nome), h('label', {'class': 'campo largo'}, 'Valor da parcela', valor),
+      h('label', {'class': 'campo'}, 'Quantas no total', total), h('label', {'class': 'campo'}, 'Quantas faltam', falt)),
+    h('div', {'class': 'acoes'},
+      p ? h('button', {'class': 'botao perigo', type: 'button', onclick: function(){ fecharFolha();
+        comDesfazer('Parcela tirada', function(){ S.parcelas = S.parcelas.filter(function(x){ return x !== p; }); }); }}, 'Tirar') : null,
+      h('button', {'class': 'botao primario', type: 'button', id: 'pe-salvar', onclick: salvar}, 'Salvar'))]);
+}
+
+/* A compra simulada junto com as parcelas que já existem, nos próximos 12 meses (a começar por
+   este: a 1ª parcela pesa no mês da compra). Cada barra soma o que já está comprometido (taupe)
+   e a parcela nova (argila clara). A linha tracejada é o "limite confortável" (30% da renda,
+   ou o que você escolher). Por que mostrar o pior mês: é nele que a compra aperta. */
+function graficoParcelas(p, n, aoMudar){
+  const renda = S.config.renda || 0, pct = S.config.limitePct || 30, limite = Math.round(renda * pct / 100);
+  const meses = [];
+  for(let i = 0; i < 12; i++){
+    const ym = addMeses(mesAtual(), i);
+    meses.push({ym: ym, ex: parcelasDoMes(ym), nova: i < n ? p.parcela : 0});
+  }
+  const pior = Math.max.apply(null, meses.map(function(m){ return m.ex + m.nova; }));
+  const escala = Math.max(pior, limite, 1) * 1.15;
+  const barras = h('div', {'class': 'barras', id: 'parc-barras'}, meses.map(function(m){
+    return h('div', {'class': 'barra-mes', 'data-ym': m.ym, 'data-existente': m.ex, 'data-nova': m.nova,
+      title: mesCurto(m.ym) + ': ' + fmtDinheiro(m.ex + m.nova)},
+      h('span', {'class': 'existente', style: 'height:' + (m.ex / escala * 100).toFixed(1) + '%'}),
+      h('span', {'class': 'nova', style: 'height:' + (m.nova / escala * 100).toFixed(1) + '%'}));
+  }));
+  if(renda) barras.appendChild(h('div', {'class': 'limite-linha', style: 'bottom:' + (limite / escala * 100).toFixed(1) + '%'}));
+  const frase = 'Com esta compra, seu pior mês fica em ' + fmtDinheiro(pior) +
+    (renda ? ' (' + Math.round(pior / renda * 100) + '% da renda).' + (pior > limite ? ' Passa do limite confortável.' : '') : '. Informe a renda nos Ajustes para comparar.');
+  const lim = h('input', {'class': 'entrada-txt num', id: 'parc-limite', type: 'text', inputmode: 'numeric', value: String(pct), 'aria-label': 'Limite confortável'});
+  lim.addEventListener('change', function(){ S.config.limitePct = Math.max(1, Math.min(100, Math.round(calcNum(lim.value)) || 30)); save(); aoMudar(); });
+  const nome = h('input', {'class': 'entrada-txt', id: 'parc-nome', type: 'text', value: PARC.nome || '', placeholder: 'Ex.: Sofá', 'aria-label': 'Nome da compra'});
+  nome.addEventListener('input', function(){ PARC.nome = nome.value; });
+  return h('div', {'class': 'grafico', id: 'parc-grafico'},
+    barras,
+    h('div', {'class': 'meses-rot', 'aria-hidden': 'true'}, meses.map(function(m){ return h('span', null, MESES[+m.ym.slice(5, 7) - 1].charAt(0).toUpperCase()); })),
+    h('div', {'class': 'legenda'}, h('span', null, h('i', {style: 'background:var(--barra)'}), 'Parcelas atuais'),
+      h('span', null, h('i', {style: 'background:var(--acc-claro)'}), 'Esta compra'), renda ? h('span', null, h('i', {'class': 'tracado'}), 'Limite confortável') : null),
+    h('p', {'class': 'frase', id: 'parc-pior', 'data-pior': pior}, frase),
+    h('div', {'class': 'campos'}, h('label', {'class': 'campo'}, 'Limite confortável (% da renda)', lim), h('label', {'class': 'campo'}, 'Nome da compra', nome)),
+    h('div', {'class': 'acoes'}, h('button', {'class': 'botao primario cheio', type: 'button', id: 'parc-adicionar', onclick: function(){
+      comDesfazer('Adicionada às suas parcelas', function(){
+        S.parcelas.push({id: uid(), nome: (PARC.nome || '').trim() || 'Compra parcelada', v: p.parcela, n: n, inicio: mesAtual()});
+      });
+      PARC.nome = '';
+    }}, 'Adicionar às minhas parcelas')));
+}
+
+function secFixas(){
+  const box = h('div');
+  S.fixas.forEach(function(f){
+    const nome = h('input', {'class': 'entrada-txt nome', type: 'text', value: f.nome, placeholder: 'Ex.: Aluguel', 'aria-label': 'Nome da conta',
+      'data-fixa': f.id, onchange: function(){ f.nome = nome.value.trim(); save(); }});
+    box.appendChild(h('div', {'class': 'linha-edit'}, nome,
+      campoDinheiro('fixa-' + f.id, f.v, function(v){ f.v = v; save(); renderAjustes(); renderLateral(); }, 'Valor de ' + (f.nome || 'conta')),
+      h('button', {'class': 'redondo', type: 'button', 'aria-label': 'Tirar ' + (f.nome || 'conta'), onclick: function(){
+        comDesfazer('Conta tirada', function(){ S.fixas = S.fixas.filter(function(x){ return x !== f; }); }); }}, icone('fechar', 20))));
+  });
+  return secao('Contas fixas', 'Saem todo mês e já são descontadas. Ao pagar, lance em Contas fixas.', [box,
+    h('p', {'class': 'total-fixas'}, h('span', null, 'Total'), h('span', {'class': 'num', id: 'aj-total-fixas'}, fmtDinheiro(totalFixas()))),
+    h('div', {'class': 'acoes'}, h('button', {'class': 'botao', type: 'button', id: 'aj-add-fixa', onclick: function(){
+      const f = {id: uid(), nome: '', v: 0};
+      S.fixas.push(f); save(); renderAjustes();
+      const el = document.querySelector('[data-fixa="' + f.id + '"]'); if(el) el.focus();
+    }}, 'Adicionar conta'))], 'aj-fixas');
+}
+// escolher o ícone de uma categoria: uma folha com a grade dos ícones de traço
+function escolherIcone(c){
+  abrirFolha('Ícone de ' + c.nome, h('div', {'class': 'grade-cats'}, ICONES_CAT.map(function(nome){
+    return h('button', {type: 'button', 'class': 'cat', 'aria-pressed': String(c.icone === nome), 'aria-label': nome,
+      onclick: function(){ c.icone = nome; save(); fecharFolha(); render(); }}, h('span', {'class': 'ic-cat'}, icone(nome, 20)));
+  })));
+}
+function secCats(){
+  const grupo = function(tipo, titulo){
+    const box = h('div', null, h('p', {'class': 'sub', style: 'margin-top:16px'}, titulo));
+    S.cats.filter(function(c){ return c.tipo === tipo; }).forEach(function(c){
+      const ic = h('button', {'class': 'ic-btn', type: 'button', 'aria-label': 'Trocar o ícone de ' + c.nome, onclick: function(){ escolherIcone(c); }},
+        icone(c.icone || 'etiqueta', 20));
+      const nome = h('input', {'class': 'entrada-txt nome', type: 'text', value: c.nome, 'aria-label': 'Nome da categoria', 'data-catnome': c.id,
+        onchange: function(){ c.nome = nome.value.trim() || c.nome; save(); render(); }});
+      const limite = tipo === 'g' && c.id !== 'fixas'
+        ? campoDinheiro('lim-' + c.id, c.limite, function(v){ c.limite = v; save(); render(); }, 'Limite de ' + c.nome) : null;
+      if(limite) limite.placeholder = 'Sem limite';
+      const tirar = CATS_PROTEGIDAS.indexOf(c.id) >= 0 ? h('span', {style: 'width:44px; flex:none'}) :
+        h('button', {'class': 'redondo', type: 'button', 'aria-label': 'Apagar a categoria ' + c.nome, onclick: function(){
+          // o que estava nela vai para "Outros", para nenhum lançamento ficar sem categoria
+          comDesfazer('Categoria apagada', function(){
+            const destino = tipo === 'e' ? 'outras-entradas' : 'outros';
+            S.tx.forEach(function(t){ if(t.cat === c.id) t.cat = destino; });
+            S.cats = S.cats.filter(function(x){ return x !== c; });
+          });
+        }}, icone('fechar', 20));
+      box.appendChild(h('div', {'class': 'linha-edit'}, ic, nome, limite || (tipo === 'g' ? h('span', {style: 'width:112px; flex:none'}) : null), tirar));
+    });
+    box.appendChild(h('div', {'class': 'acoes'}, h('button', {'class': 'botao', type: 'button', onclick: function(){
+      const c = {id: uid(), nome: 'Nova', icone: tipo === 'e' ? 'moedas' : 'etiqueta', tipo: tipo, limite: 0};
+      S.cats.splice(S.cats.findIndex(function(x){ return CATS_PROTEGIDAS.indexOf(x.id) >= 0 && x.tipo === tipo; }), 0, c);
+      save(); render();
+      const el = document.querySelector('[data-catnome="' + c.id + '"]'); if(el){ el.focus(); el.select(); }
+    }}, tipo === 'e' ? 'Nova categoria de entrada' : 'Nova categoria de gasto')));
+    return box;
+  };
+  return secao('Categorias', 'Ícone, nome e limite por mês (opcional).', [grupo('g', 'Gastos'), grupo('e', 'Entradas')], 'aj-cats');
+}
+function secDados(){
+  const arqBackup = h('input', {type: 'file', accept: '.json,application/json', id: 'backup-arquivo', hidden: 'hidden'});
+  arqBackup.addEventListener('change', function(){
+    const f = arqBackup.files && arqBackup.files[0];
+    if(!f) return;
+    f.text().then(restaurarBackup);
+    arqBackup.value = '';
+  });
+  return secao('Seus dados', 'Extrato do banco e cópia de segurança.', [
+    h('div', {'class': 'acoes'},
+      h('button', {'class': 'botao cheio', type: 'button', id: 'btn-importar', onclick: abrirImportar}, 'Importar extrato CSV'),
+      h('button', {'class': 'botao', type: 'button', id: 'btn-exportar', onclick: exportarBackup}, 'Exportar backup'),
+      h('button', {'class': 'botao', type: 'button', id: 'btn-restaurar', onclick: function(){ arqBackup.click(); }}, 'Restaurar backup'), arqBackup,
+      h('button', {'class': 'botao cheio', type: 'button', id: 'aj-refazer', onclick: abrirPrimeiro}, 'Refazer o primeiro acesso')),
+    h('div', {'class': 'acoes'},
+      S.config.demo ? h('button', {'class': 'botao', type: 'button', onclick: apagarDemo}, 'Apagar exemplo') : null,
+      h('button', {'class': 'botao perigo', type: 'button', id: 'btn-apagar-tudo', onclick: apagarTudo}, 'Apagar tudo'))]);
+}
+function secTema(){
+  const seg = h('div', {'class': 'segmento', role: 'group', 'aria-label': 'Tema', style: 'margin-top:16px'});
+  [['auto', 'Automático'], ['claro', 'Claro'], ['escuro', 'Escuro']].forEach(function(x){
+    seg.appendChild(h('button', {type: 'button', 'data-tema': x[0], 'aria-pressed': String((S.config.tema || 'auto') === x[0]),
+      onclick: function(){ S.config.tema = x[0]; save(); aplicarTema(true); renderAjustes(); }}, x[1]));
+  });
+  return secao('Aparência', null, seg);
+}
+
+/* ==================== backup ==================== */
+function baixar(nome, conteudo, tipo){
+  const a = h('a', {href: URL.createObjectURL(new Blob([conteudo], {type: tipo})), download: nome});
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+// o backup é o objeto S inteiro em JSON: restaurar devolve exatamente o mesmo estado
+function exportarBackup(){
+  baixar('financas-backup-' + hojeISO() + '.json', JSON.stringify(S, null, 1), 'application/json');
+  toast('Backup exportado. Guarde o arquivo numa pasta pessoal.');
+}
+// restaurar SUBSTITUI os dados atuais; o aviso traz Desfazer em vez de perguntar antes
+function restaurarBackup(texto){
+  let obj = null;
+  try{ obj = JSON.parse(texto); }catch(e){ /* cai na mensagem abaixo */ }
+  if(!obj || typeof obj.schema_v !== 'number' || !Array.isArray(obj.tx)){ toast('Esse arquivo não parece um backup deste app.'); return; }
+  if(obj.schema_v > SCHEMA_V){ toast('Backup de uma versão mais nova do app. Atualize o app antes.'); return; }
+  comDesfazer('Backup restaurado: ' + plural(obj.tx.length, 'lançamento', 'lançamentos'), function(){ S = migrar(obj); });
+  aplicarTema();
+}
+/* Apagar tudo pede dois toques no mesmo botão (o primeiro só avisa), e ainda traz Desfazer.
+   Por que não uma janela de confirmação: a do navegador é feia e trava a tela no celular. */
+let apagarArmado = 0;
+function apagarTudo(ev){
+  const b = ev && ev.currentTarget;
+  if(Date.now() - apagarArmado > 4000){
+    apagarArmado = Date.now();
+    if(b) b.textContent = 'Toque de novo para apagar';
+    setTimeout(function(){ if(b && b.isConnected) b.textContent = 'Apagar tudo'; }, 4000);
+    return;
+  }
+  apagarArmado = 0;
+  const tema = S.config.tema;
+  comDesfazer('Tudo apagado', function(){ S = fresh(); S.config.tema = tema; });
+}
+
+/* ==================== importar extrato CSV ==================== */
+/* Lê CSV com ; , ou tab (o separador é o que mais aparece na primeira linha, fora de aspas)
+   e aspas duplas no padrão ("" dentro de aspas é uma aspa). Devolve as linhas não vazias. */
+function parseCSV(text){
+  text = String(text || '').replace(/^﻿/, '');
+  const nl = text.indexOf('\n'), primeira = nl < 0 ? text : text.slice(0, nl);
+  let delim = ';', melhor = -1;
+  [';', ',', '\t'].forEach(function(d){
+    let cnt = 0, q = false;
+    for(let i = 0; i < primeira.length; i++){ const c = primeira[i]; if(c === '"') q = !q; else if(c === d && !q) cnt++; }
+    if(cnt > melhor){ melhor = cnt; delim = d; }
+  });
+  const rows = [];
+  let row = [], field = '', q = false;
+  for(let i = 0; i < text.length; i++){
+    const c = text[i];
+    if(q){ if(c === '"'){ if(text[i + 1] === '"'){ field += '"'; i++; } else q = false; } else field += c; }
+    else if(c === '"') q = true;
+    else if(c === delim){ row.push(field); field = ''; }
+    else if(c === '\n'){ row.push(field.replace(/\r$/, '')); field = ''; rows.push(row); row = []; }
+    else field += c;
+  }
+  if(field !== '' || row.length){ row.push(field.replace(/\r$/, '')); rows.push(row); }
+  return rows.filter(function(r){ return r.some(function(c){ return String(c).trim() !== ''; }); });
+}
+// a "identidade" de um lançamento para achar repetidos: data + descrição + valor
+function chaveTx(t){ return t.d + '|' + normal(t.desc) + '|' + t.v; }
+/* Alguns extratos trazem um resumo ANTES da tabela (saldo inicial e final). O cabeçalho é a
+   primeira linha, entre as 10 primeiras, que tem uma coluna de data E uma de valor. */
+function acharCabecalho(rows){
+  for(let i = 0; i < Math.min(10, rows.length); i++){
+    const cab = rows[i].map(function(c){ return String(c).toLowerCase(); });
+    if(cab.some(function(c){ return /data|date/.test(c); }) && cab.some(function(c){ return /valor|montante|amount|quantia/.test(c); })) return i;
+  }
+  return 0;
+}
+/* Separa o que é novo do que já existe. A contagem por chave deixa entrar duas compras iguais
+   no mesmo dia (dois cafés de R$ 5): só entra o que passa do que já está guardado. */
+function separarNovos(cands){
+  const exist = {}, usado = {}, novos = [];
+  S.tx.forEach(function(t){ const k = chaveTx(t); exist[k] = (exist[k] || 0) + 1; });
+  cands.forEach(function(c){
+    const k = chaveTx(c);
+    usado[k] = (usado[k] || 0) + 1;
+    if(usado[k] > (exist[k] || 0)) novos.push(c);
+  });
+  return novos;
+}
+function abrirImportar(){
+  const wz = {rows: [], mapa: {d: -1, desc: -1, v: -1}, sinal: 'neg'};
+  const arq = h('input', {type: 'file', accept: '.csv,.txt,text/csv', id: 'imp-arquivo', 'class': 'entrada-txt', style: 'padding-top:12px'});
+  const area = h('div');
+  const btn = h('button', {'class': 'botao primario cheio', type: 'button', id: 'imp-confirmar', disabled: 'disabled'}, 'Escolha o arquivo');
+  let novos = [], repetidos = 0;
+  arq.addEventListener('change', function(){
+    const f = arq.files && arq.files[0];
+    if(!f) return;
+    f.text().then(function(txt){ processar(parseCSV(txt)); }).catch(function(e){
+      area.textContent = ''; area.appendChild(h('p', {'class': 'vazio'}, 'Não consegui ler o arquivo: ' + e.message));
+    });
+  });
+  btn.addEventListener('click', importar);
+  abrirFolha('Importar extrato', [
+    h('p', {'class': 'sub', style: 'margin:8px 0 16px'}, 'Exporte o extrato em CSV no app do banco e escolha o arquivo. Repetir não duplica.'),
+    arq, area, h('div', {'class': 'acoes'}, btn)]);
+
+  // acha o cabeçalho, adivinha as colunas pelo nome (ou usa as que você escolheu da última vez)
+  function processar(rows){
+    const i = acharCabecalho(rows);
+    wz.rows = rows.slice(i);
+    if(wz.rows.length < 2){ area.textContent = ''; area.appendChild(h('p', {'class': 'vazio'}, 'Não achei linhas nesse arquivo.')); return; }
+    const cab = wz.rows[0].map(function(c){ return String(c).toLowerCase(); });
+    const salvo = (S.config.mapaCSV || {})[cab.join('|')];
+    if(salvo){ wz.mapa = {d: salvo.d, desc: salvo.desc, v: salvo.v}; wz.sinal = salvo.sinal || 'neg'; }
+    else {
+      wz.mapa = {d: -1, desc: -1, v: -1};
+      cab.forEach(function(c, k){
+        if(wz.mapa.d < 0 && /data|date/.test(c)) wz.mapa.d = k;
+        if(wz.mapa.desc < 0 && /descri|hist|detalh|estabelec|t[ií]tulo|nome|opera|transaction_type/.test(c)) wz.mapa.desc = k;
+        if(wz.mapa.v < 0 && /valor|montante|amount|quantia/.test(c)) wz.mapa.v = k;
+      });
+    }
+    desenhar();
+  }
+  function desenhar(){
+    area.textContent = '';
+    const nomes = wz.rows[0].map(function(n, k){ n = String(n).trim(); return n ? n.slice(0, 28) : 'coluna ' + (k + 1); });
+    // cada escolha é uma fileira de chips: a coluna adivinhada já vem marcada; um toque troca
+    const escolha = function(rotulo, opcoes, atual, aoEscolher){
+      return h('div', {style: 'margin-top:16px'}, h('p', {'class': 'campo'}, rotulo), h('div', {'class': 'chips', style: 'margin-top:4px'},
+        opcoes.map(function(o){ return h('button', {type: 'button', 'class': 'chip', 'aria-pressed': String(o[0] === atual),
+          onclick: function(){ aoEscolher(o[0]); desenhar(); }}, o[1]); })));
+    };
+    const colunas = nomes.map(function(n, k){ return [k, n]; });
+    area.append(
+      escolha('Coluna da data', colunas, wz.mapa.d, function(k){ wz.mapa.d = k; }),
+      escolha('Coluna da descrição', colunas, wz.mapa.desc, function(k){ wz.mapa.desc = k; }),
+      escolha('Coluna do valor', colunas, wz.mapa.v, function(k){ wz.mapa.v = k; }),
+      escolha('Sinal do valor', [['neg', 'Negativo é gasto'], ['todosGasto', 'Tudo é gasto'], ['inv', 'Inverter']], wz.sinal, function(v){ wz.sinal = v; }));
+    // cada linha vira candidata; vale se tem data e valor diferente de zero
+    const cands = wz.rows.slice(1).map(function(r){
+      const d = wz.mapa.d >= 0 ? parseDateAny(r[wz.mapa.d]) : null;
+      let v = wz.mapa.v >= 0 ? parseMoney(r[wz.mapa.v]) : null;
+      if(v !== null && wz.sinal === 'todosGasto') v = -Math.abs(v); else if(v !== null && wz.sinal === 'inv') v = -v;
+      return {ok: !!(d && v), d: d, desc: wz.mapa.desc >= 0 ? String(r[wz.mapa.desc] || '').trim() : '', v: v};
+    });
+    const validos = cands.filter(function(c){ return c.ok; }).map(function(c){ return {d: c.d, desc: c.desc, v: c.v}; });
+    novos = separarNovos(validos);
+    repetidos = validos.length - novos.length;
+    area.appendChild(h('div', {'class': 'previa'}, validos.slice(0, 5).map(function(c){
+      return h('div', null, h('span', {'class': 'sub'}, c.d.slice(8, 10) + '/' + c.d.slice(5, 7)), h('span', null, c.desc), h('span', {'class': 'num' + (c.v > 0 ? ' pos' : '')}, fmtSinal(c.v)));
+    })));
+    area.appendChild(h('p', {'class': 'sub', id: 'imp-resumo', style: 'margin-top:16px'},
+      plural(validos.length, 'linha válida', 'linhas válidas') + ', ' + plural(repetidos, 'já existia', 'já existiam') + '.'));
+    btn.disabled = !novos.length;
+    btn.textContent = novos.length ? 'Importar ' + plural(novos.length, 'lançamento', 'lançamentos') : 'Nada novo para importar';
+  }
+  function importar(){
+    if(!novos.length) return;
+    const n = novos.length, rep = repetidos;
+    fecharFolha();
+    comDesfazer(plural(n, 'lançamento importado', 'lançamentos importados') + (rep ? ', ' + rep + ' já existiam' : ''), function(){
+      // categoriza um por um, na ordem, para "a mesma descrição de antes" valer dentro do próprio arquivo
+      novos.forEach(function(c){
+        S.tx.push({id: uid(), d: c.d, desc: c.desc, v: c.v, cat: sugerirCat(c.v > 0 ? 'e' : 'g', c.desc, true), org: 'csv'});
+      });
+      S.config.mapaCSV = S.config.mapaCSV || {};
+      S.config.mapaCSV[wz.rows[0].map(function(c){ return String(c).toLowerCase(); }).join('|')] = {d: wz.mapa.d, desc: wz.mapa.desc, v: wz.mapa.v, sinal: wz.sinal};
+    });
+  }
+}
+
+/* ==================== exemplo (a Ana, pessoa fictícia) ==================== */
+/* Por que existe: quem abre pela primeira vez vê tudo vazio e não entende o app. O exemplo
+   gera 3 meses de lançamentos com números "aleatórios" de semente fixa: sai igual em toda
+   máquina no mesmo dia, e o "Hoje dá para gastar" fica plausível em qualquer dia do mês. */
+function geradorDemo(semente){
+  let s = semente;
+  return function(){ s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+}
+function montarDemo(){
+  const s = fresh(), rnd = geradorDemo(20261024);
+  const entre = function(a, b){ return Math.round(a + rnd() * (b - a)); };   // centavos entre a e b
+  s.config.demo = true;
+  s.config.renda = 540000;   // R$ 5.400 líquidos
+  s.config.jaLancou = true;   // a Ana já usa o app: a dica de primeiro uso não aparece
+  // duas compras parceladas, simples: celular (faltam 4 de 10) e geladeira (faltam 7 de 12)
+  s.parcelas.push({id: uid(), nome: 'Celular novo', v: 18900, n: 10, inicio: addMeses(mesAtual(), -6)},
+    {id: uid(), nome: 'Geladeira', v: 24000, n: 12, inicio: addMeses(mesAtual(), -5)});
+  [['Aluguel', 150000, 10], ['Condomínio', 38000, 10], ['Energia', 15000, 15], ['Internet', 9990, 12],
+   ['Celular', 4990, 8], ['Academia', 11000, 5], ['Reserva', 40000, 6]].forEach(function(f){
+    s.fixas.push({id: uid(), nome: f[0], v: f[1], dia: f[2]});
+  });
+  [['mercado', 90000], ['comida', 30000], ['transporte', 30000], ['lazer', 20000]].forEach(function(l){
+    s.cats.find(function(c){ return c.id === l[0]; }).limite = l[1];
+  });
+  const ymHoje = mesAtual(), diaHoje = +hojeISO().slice(8, 10);
+  const add = function(ym, dia, desc, v, cat){ s.tx.push({id: uid(), d: ym + '-' + pad2(dia), desc: desc, v: v, cat: cat, org: 'demo'}); };
+  for(let i = 2; i >= 0; i--){
+    const ym = addMeses(ymHoje, -i), atual = i === 0;
+    const ultimo = atual ? diaHoje - 1 : diasNoMes(ym);          // no mês atual, o dia a dia vai até ontem
+    const ate = function(d){ return !atual || d <= diaHoje; };   // entradas e contas: até hoje
+    if(ate(5)) add(ym, 5, 'Salário', 540000, 'salario');
+    if(ate(20)) add(ym, 20, 'Aulas de violão', 30000, 'extra');
+    s.fixas.forEach(function(f){ if(ate(f.dia)) add(ym, f.dia, f.nome, -f.v, 'fixas'); });
+    for(let d = 1; d <= ultimo; d++){
+      if(rnd() < 0.55) add(ym, d, 'Padaria do bairro', -entre(900, 2400), 'cafe');
+      if(d % 7 === 3) add(ym, d, 'Supermercado Bom Preço', -entre(16000, 26000), 'mercado');
+      if(rnd() < 0.22) add(ym, d, 'iFood', -entre(3500, 8500), 'comida');
+      if(rnd() < 0.35) add(ym, d, 'Uber', -entre(1400, 3200), 'transporte');
+      if(rnd() < 0.08) add(ym, d, rnd() < 0.5 ? 'Cinema' : 'Bar com amigos', -entre(4000, 12000), 'lazer');
+      if(rnd() < 0.05) add(ym, d, 'Farmácia', -entre(3000, 9000), 'saude');
+      if(rnd() < 0.05) add(ym, d, 'Loja de roupas', -entre(6000, 18000), 'compras');
+      if(rnd() < 0.04) add(ym, d, 'Utilidades para casa', -entre(2500, 8000), 'casa');
+    }
+  }
+  // hoje cedo: um café e uma corrida, para a lista "Lançados hoje" não abrir vazia
+  add(ymHoje, diaHoje, 'Padaria do bairro', -1250, 'cafe');
+  add(ymHoje, diaHoje, 'Uber', -2340, 'transporte');
+  s.fixas.forEach(function(f){ delete f.dia; });
+  return s;
+}
+function entrarDemo(){
+  const tema = S.config.tema;
+  S = montarDemo(); S.config.tema = tema;
+  if(PA.aberto){ fecharPrimeiro(); return; }
+  PRIMEIRA_VEZ = false;
+  save(); fecharFolha(); irPara('hoje'); render();
+}
+// apaga o que é da Ana; o que você lançou enquanto via o exemplo fica
+function apagarDemo(){
+  const tema = S.config.tema;
+  comDesfazer('Exemplo apagado', function(){
+    const seus = S.tx.filter(function(t){ return t.org !== 'demo'; });
+    S = fresh(); S.config.tema = tema; S.tx = seus;
+  });
+}
+/* ==================== minhas parcelas ==================== */
+/* Uma parcela guardada: {id, nome, v (valor de cada parcela, centavos), n (quantas no total),
+   inicio ("aaaa-mm" da 1ª)}. A k-ésima cai no mês inicio + k - 1. Por que guardar o início e não
+   "quantas faltam": o "faltam" muda sozinho a cada mês; o início não, então nada precisa ser
+   atualizado à mão. As parcelas abertas no mês entram junto com as contas fixas. */
+function mesesEntre(a, b){ return (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7)); }
+function parcelaNoMes(p, ym){ const k = mesesEntre(p.inicio, ym); return k >= 0 && k < p.n; }
+// quanto as parcelas tomam de um mês (as guardadas, ou uma lista de teste)
+function parcelasDoMes(ym, lista){ return (lista || S.parcelas).reduce(function(a, p){ return parcelaNoMes(p, ym) ? a + p.v : a; }, 0); }
+// quantas faltam pagar, contando a deste mês
+function faltam(p){ return Math.max(0, Math.min(p.n, p.n - mesesEntre(p.inicio, mesAtual()))); }
+function mesCurto(ym){ return MESES[+ym.slice(5, 7) - 1].slice(0, 3) + '/' + ym.slice(2, 4); }
+function descParcela(p){ const f = faltam(p); return f ? 'Faltam ' + f + ' de ' + p.n + ' · desde ' + mesCurto(p.inicio) : 'Quitada'; }
+// de "quantas no total" e "quantas faltam" sai o mês da primeira
+function inicioDe(n, f){ return addMeses(mesAtual(), -(n - f)); }
+
+/* ==================== marca ==================== */
+/* A marca do Vintém: uma moeda (o círculo) com o V. Desenho geométrico de dois traços, que
+   continua legível em 16 px (o ícone da aba é o mesmo desenho). As cores saem do tema. */
+function marca(tam){
+  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  s.setAttribute('viewBox', '0 0 32 32'); s.setAttribute('width', tam); s.setAttribute('height', tam);
+  s.setAttribute('aria-hidden', 'true'); s.setAttribute('class', 'marca');
+  s.innerHTML = '<circle class="marca-c" cx="16" cy="16" r="15"/><path class="marca-v" d="M10.5 10.5 16 22l5.5-11.5" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>';
+  return s;
+}
+function logotipo(tam){ return h('div', {'class': 'logotipo'}, marca(tam || 28), h('span', {'class': 'logo-nome'}, 'Vintém')); }
+
+/* ==================== primeiro acesso ==================== */
+/* Um passo a passo curto, de tela cheia: (1) boas-vindas, (2) renda, (3) contas fixas,
+   (4) parcelas. "Pular" fica sempre à vista: grava o que já foi informado e segue; no passo 1,
+   pular é começar do zero. Tudo pode ser mudado depois nos Ajustes. Por que perguntar antes:
+   sem renda o "Hoje dá para gastar" não tem como sair, e a pessoa não entende o app. */
+const PA = {aberto: false, passo: 1, txt: '', fixaEd: null};
+const SUGESTOES_FIXAS = ['Aluguel', 'Condomínio', 'Luz', 'Internet', 'Celular', 'Academia', 'Plano de saúde'];
+function abrirPrimeiro(){
+  const r = S.config.renda || 0;
+  Object.assign(PA, {aberto: true, passo: 1, txt: r ? Math.floor(r / 100) + (r % 100 ? ',' + pad2(r % 100) : '') : '', fixaEd: null});
+  document.getElementById('primeiro').hidden = false;
+  document.getElementById('lateral').hidden = true;
+  desenharPrimeiro();
+}
+function fecharPrimeiro(){
+  PA.aberto = false; PRIMEIRA_VEZ = false;
+  S.config.primeiro = true;
+  save();
+  document.getElementById('primeiro').hidden = true;
+  document.getElementById('lateral').hidden = false;
+  irPara('hoje'); render();
+}
+// grava o que o passo tem de pendente (a renda digitada); contas e parcelas já gravam ao adicionar
+function gravarPasso(){
+  if(PA.passo === 2 && PA.txt) S.config.renda = parseMoney(PA.txt) || 0;
+  save();
+}
+function seguir(){ gravarPasso(); if(PA.passo >= 4) fecharPrimeiro(); else { PA.passo++; PA.fixaEd = null; desenharPrimeiro(); } }
+function pular(){ if(PA.passo === 1) fecharPrimeiro(); else seguir(); }
+// as teclas do passo da renda usam a mesma regra do teclado da tela Hoje
+function teclaPrimeiro(k){
+  if(k === 'ok'){ seguir(); return; }
+  const t = editarValor(PA.txt, k);
+  if(t === null) return;
+  PA.txt = t;
+  const v = document.getElementById('pa-visor');
+  v.textContent = PA.txt ? fmtDigitado(PA.txt) : 'R$ 0';
+  v.className = 'pa-visor num' + (PA.txt ? '' : ' vazio-v');
+  v.appendChild(h('span', {'class': 'cursor', 'aria-hidden': 'true'}));
+}
+function desenharPrimeiro(){
+  const box = document.getElementById('primeiro');
+  box.textContent = '';
+  const p = PA.passo;
+  const pontos = h('div', {'class': 'pa-pontos', 'aria-hidden': 'true'}, [1, 2, 3, 4].map(function(i){ return h('span', {'class': i <= p ? 'feito' : null}); }));
+  box.appendChild(h('div', {'class': 'pa-topo'},
+    p > 1 ? h('button', {'class': 'link', type: 'button', id: 'pa-voltar', style: 'justify-self:start', onclick: function(){ gravarPasso(); PA.passo--; PA.fixaEd = null; desenharPrimeiro(); }}, 'Voltar') : h('span'),
+    h('div', {'class': 'pa-indicador', id: 'pa-indicador', 'data-passo': p}, pontos, p + ' de 4'),
+    h('button', {'class': 'link', type: 'button', id: 'pa-pular', onclick: pular}, 'Pular')));
+  const corpo = h('div', {'class': 'pa-corpo'});
+  box.appendChild(corpo);
+  if(p === 1){
+    corpo.append(h('div', {'class': 'pa-abertura'}, logotipo(56),
+      h('p', null, 'Anote um gasto em dois toques e saiba quanto dá para gastar hoje. Seus dados ficam neste aparelho.')),
+      h('div', {'class': 'pa-fim'},
+        h('button', {'class': 'botao primario cheio', type: 'button', id: 'pa-comecar', onclick: seguir}, 'Começar'),
+        S.tx.length ? null : h('button', {'class': 'botao cheio', type: 'button', id: 'bv-demo', onclick: entrarDemo}, 'Só quero ver um exemplo')));
+  } else if(p === 2){
+    const v = h('p', {'class': 'pa-visor num' + (PA.txt ? '' : ' vazio-v'), id: 'pa-visor', 'aria-live': 'polite'}, PA.txt ? fmtDigitado(PA.txt) : 'R$ 0',
+      h('span', {'class': 'cursor', 'aria-hidden': 'true'}));
+    corpo.append(h('h1', null, 'Quanto entra por mês?'), h('p', {'class': 'sub'}, 'Sua renda já líquida. Dá para mudar depois.'), v,
+      criarTeclado('pa-teclado', 'pa-ok', teclaPrimeiro));
+  } else if(p === 3){
+    const nomes = S.fixas.map(function(f){ return normal(f.nome); });
+    const chips = h('div', {'class': 'chips quebra'}, SUGESTOES_FIXAS.filter(function(n){ return nomes.indexOf(normal(n)) < 0; }).map(function(n){
+      return h('button', {type: 'button', 'class': 'chip', 'data-sug': n, onclick: function(){ PA.fixaEd = n; desenharPrimeiro(); }}, n);
+    }), h('button', {type: 'button', 'class': 'chip', 'data-sug': '', onclick: function(){ PA.fixaEd = ''; desenharPrimeiro(); }}, icone('mais', 18), 'Outra'));
+    corpo.append(h('h1', null, 'Contas fixas'), h('p', {'class': 'sub'}, 'O que sai todo mês. Toque para informar o valor.'), chips);
+    if(PA.fixaEd !== null){
+      const nome = h('input', {'class': 'entrada-txt', id: 'pa-fixa-nome', type: 'text', value: PA.fixaEd, placeholder: 'Nome', 'aria-label': 'Nome da conta'});
+      const valor = h('input', {'class': 'entrada-txt num', id: 'pa-fixa-valor', type: 'text', inputmode: 'decimal', placeholder: '0,00', 'aria-label': 'Valor'});
+      corpo.append(h('div', {'class': 'pa-editor'}, nome, valor, h('button', {'class': 'botao', type: 'button', id: 'pa-fixa-add', onclick: function(){
+        const v = Math.abs(parseMoney(valor.value) || 0);
+        if(!v || !nome.value.trim()){ (v ? nome : valor).focus(); return; }
+        S.fixas.push({id: uid(), nome: nome.value.trim(), v: v}); save(); PA.fixaEd = null; desenharPrimeiro();
+      }}, 'Adicionar')));
+      setTimeout(function(){ (PA.fixaEd ? valor : nome).focus(); }, 30);
+    }
+    corpo.append(listaSimples(S.fixas.map(function(f){ return [f.nome, f.v, function(){ S.fixas = S.fixas.filter(function(x){ return x !== f; }); save(); desenharPrimeiro(); }]; })),
+      h('div', {'class': 'pa-fim'}, h('button', {'class': 'botao primario cheio', type: 'button', id: 'pa-continuar', onclick: seguir}, 'Continuar')));
+  } else {
+    const nome = h('input', {'class': 'entrada-txt', id: 'pa-parc-nome', type: 'text', placeholder: 'Ex.: Celular', 'aria-label': 'Nome'});
+    const valor = h('input', {'class': 'entrada-txt num', id: 'pa-parc-valor', type: 'text', inputmode: 'decimal', placeholder: '0,00', 'aria-label': 'Valor da parcela'});
+    const quantas = h('input', {'class': 'entrada-txt num', id: 'pa-parc-faltam', type: 'text', inputmode: 'numeric', placeholder: 'Ex.: 6', 'aria-label': 'Quantas faltam'});
+    corpo.append(h('h1', null, 'Parcelas que você já paga'), h('p', {'class': 'sub'}, 'Opcional. Elas entram nas contas de cada mês até acabar.'),
+      h('div', {'class': 'campos'}, h('label', {'class': 'campo largo'}, 'Nome', nome), h('label', {'class': 'campo'}, 'Valor da parcela', valor),
+        h('label', {'class': 'campo'}, 'Quantas faltam', quantas)),
+      h('div', {'class': 'acoes'}, h('button', {'class': 'botao cheio', type: 'button', id: 'pa-parc-add', onclick: function(){
+        const v = Math.abs(parseMoney(valor.value) || 0), f = Math.round(calcNum(quantas.value));
+        if(!v || f < 1){ (v ? quantas : valor).focus(); return; }
+        S.parcelas.push({id: uid(), nome: nome.value.trim() || 'Parcela', v: v, n: f, inicio: mesAtual()}); save(); desenharPrimeiro();
+      }}, 'Adicionar parcela')),
+      listaSimples(S.parcelas.map(function(x){ return [x.nome + ' · ' + plural(faltam(x), 'falta', 'faltam'), x.v, function(){ S.parcelas = S.parcelas.filter(function(y){ return y !== x; }); save(); desenharPrimeiro(); }]; })),
+      h('div', {'class': 'pa-fim'}, h('button', {'class': 'botao primario cheio', type: 'button', id: 'pa-pronto', onclick: seguir}, 'Pronto')));
+  }
+}
+// linhas "nome ... valor  x" (o que já foi informado num passo)
+function listaSimples(itens){
+  return h('div', {'class': 'linhas', style: 'margin-top:16px'}, itens.map(function(it){
+    return h('div', {'class': 'linha-conta'}, h('span', null, it[0]), h('span', {style: 'display:flex; align-items:center; gap:4px'},
+      h('span', {'class': 'num'}, fmtDinheiro(it[1])), h('button', {'class': 'redondo', type: 'button', 'aria-label': 'Tirar ' + it[0], onclick: it[2]}, icone('fechar', 18))));
+  }));
+}
+
+/* ==================== painel lateral (só em tela larga) ==================== */
+function renderLateral(){
+  const box = document.getElementById('lateral');
+  if(!box || !matchMedia('(min-width: 1100px)').matches){ if(box) box.textContent = ''; return; }
+  const ym = mesAtual(), r = resumoMes(ym);
+  const linha = function(rotulo, cent){ return h('div', {'class': 'linha-conta'}, h('span', null, rotulo), h('span', {'class': 'num'}, fmtDinheiro(cent))); };
+  box.textContent = '';
+  box.append(h('h2', null, mesLabel(ym)),
+    h('p', {'class': 'big num ' + (r.sobra < 0 ? 'ruim' : '')}, fmtDinheiro(r.sobra)), h('p', {'class': 'sub'}, 'Saldo do mês até agora'),
+    h('div', {'class': 'linhas'}, linha('Entrou', r.entrou), linha('Saiu', r.saiu), linha('Contas fixas e parcelas', totalFixas() + parcelasDoMes(ym))),
+    h('h2', {'class': 'titulo-sec'}, 'Por categoria'), blocoCategorias(ym, true));
+}
+
+/* ==================== navegação, tema e começo ==================== */
+// [id, rótulo na barra, ícone]. Hoje no centro, onde o polegar alcança melhor; "Calcular" porque
+// "Calculadoras" não cabe em 5 colunas a 390 px. O app continua abrindo em Hoje.
+const TELAS = [['hist', 'Histórico', 'hist'], ['mes', 'Mês', 'mes'], ['hoje', 'Hoje', 'hoje'], ['calc', 'Calcular', 'calc'], ['ajustes', 'Ajustes', 'ajustes']];
+let telaAtual = 'hoje';
+function mostrarTela(id){
+  if(!TELAS.some(function(t){ return t[0] === id; })) id = 'hoje';
+  if(id === 'mes' && telaAtual !== 'mes') mesVer = mesAtual();
+  telaAtual = id;
+  TELAS.forEach(function(t){ document.getElementById('tela-' + t[0]).hidden = t[0] !== id; });
+  document.querySelectorAll('#nav a').forEach(function(a){
+    if(a.dataset.tela === id) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+  render();
+  window.scrollTo(0, 0);
+}
+// redesenha só a tela aberta (as outras se desenham quando forem abertas) e o que é comum
+function render(){
+  if(telaAtual === 'hoje') renderHoje();
+  else if(telaAtual === 'mes') renderMes();
+  else if(telaAtual === 'hist') renderHist();
+  else if(telaAtual === 'calc') renderCalc();
+  else renderAjustes();
+  document.getElementById('faixa-demo').hidden = !S.config.demo;
+  renderLateral();
+}
+function irPara(id){ if(location.hash === '#' + id) mostrarTela(id); else location.hash = '#' + id; }
+
+// ?tema=claro|escuro na URL manda (fotos e testes); senão vale a escolha salva; "auto" segue o sistema
+function aplicarTema(ignorarUrl){
+  let t = null;
+  if(!ignorarUrl){ try{ t = new URLSearchParams(location.search).get('tema'); }catch(_){} }
+  t = t || S.config.tema || 'auto';
+  if(t === 'auto') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro';
+  document.documentElement.dataset.theme = t === 'escuro' ? 'dark' : 'light';
+  document.querySelector('meta[name="theme-color"]').content = t === 'escuro' ? '#1C1713' : '#FAF6F0';
+}
+// teclado físico (computador): na tela Hoje digita o valor; na calculadora faz a conta
+function teclaFisica(ev){
+  if(/^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName) || document.getElementById('folha').open || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if(PA.aberto){
+    const k = /^[0-9]$/.test(ev.key) ? ev.key : {',': ',', '.': ',', 'Backspace': 'del', 'Enter': 'ok'}[ev.key];
+    if(PA.passo === 2 && k){ ev.preventDefault(); teclaPrimeiro(k); }
+    return;
+  }
+  if(telaAtual === 'hoje'){
+    const k = /^[0-9]$/.test(ev.key) ? ev.key : {',': ',', '.': ',', 'Backspace': 'del', 'Enter': 'ok'}[ev.key];
+    if(!k) return;
+    ev.preventDefault(); tecla(k);
+  } else if(telaAtual === 'calc' && calcAba === 'comum'){
+    const mapa = {',': ',', '.': ',', '+': '+', '-': '−', '*': '×', 'x': '×', '/': '÷', 'Enter': '=', '=': '=', '%': '%',
+      'Backspace': '⌫', 'Escape': 'C', 'Delete': 'C'};
+    const k = /^[0-9]$/.test(ev.key) ? ev.key : mapa[ev.key];
+    if(!k) return;
+    ev.preventDefault(); calcTecla(k); calcMostra();
+  }
+}
+
+function init(){
+  load();
+  aplicarTema();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(){ aplicarTema(); });
+  matchMedia('(min-width: 1100px)').addEventListener('change', renderLateral);
+  const nav = document.getElementById('nav');
+  TELAS.forEach(function(t){ nav.appendChild(h('a', {href: '#' + t[0], 'data-tela': t[0], 'class': t[0] === 'hoje' ? 'centro' : null}, icone(t[2], 22), t[1])); });
+  window.addEventListener('hashchange', function(){ mostrarTela(location.hash.slice(1)); });
+  document.getElementById('apagar-demo').addEventListener('click', apagarDemo);
+  document.addEventListener('keydown', teclaFisica);
+  document.addEventListener('touchstart', function(){}, {passive: true});   // liga o :active no iPhone
+  // tocar no fundo escuro fecha a folha (o toque dentro dela cai num filho, não no dialog)
+  const dlg = document.getElementById('folha');
+  dlg.addEventListener('click', function(ev){ if(ev.target === dlg && !PRIMEIRA_VEZ) dlg.close(); });
+  dlg.addEventListener('cancel', function(ev){ if(PRIMEIRA_VEZ) ev.preventDefault(); });
+  mostrarTela(location.hash.slice(1) || 'hoje');
+  if(PRIMEIRA_VEZ && PODE_SALVAR) abrirPrimeiro();
+  document.body.dataset.ready = '1';
+}
+init();
+</script>
+</body>
+</html>
